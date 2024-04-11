@@ -1,0 +1,5 @@
+/.vscode
+/.devcontainer
+/.github
+/build
+/.clang-format
