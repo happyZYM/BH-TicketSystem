@@ -1,5 +1,5 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(BACKEND_EXETUABLE_NAME "backend")
+set(BACKEND_EXETUABLE_NAME "core-cli")
 if(OJ_TEST_BACKEND)
   set(BACKEND_EXETUABLE_NAME "code")
 endif()

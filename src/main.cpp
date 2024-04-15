@@ -13,13 +13,10 @@ const bool global_log_enabled = false;
 const bool global_log_enabled = true;
 #endif
 int main(int argc, char *argv[]) {
-  argparse::ArgumentParser program("backend", main_version + "-" + build_version);
+  argparse::ArgumentParser program("core-cli", main_version + "-" + build_version);
   argparse::ArgumentParser fsck_command("fsck");
   fsck_command.add_description("Check and fix data");
   program.add_subparser(fsck_command);
-  argparse::ArgumentParser server_command("server");
-  server_command.add_description("Start RESTful server");
-  program.add_subparser(server_command);
   program.add_argument("-d", "--directory").help("Directory to serve").default_value(std::string(".")).nargs(1, 1);
   auto &group = program.add_mutually_exclusive_group();
   group.add_argument("-c", "--consolelog").help("Enable console log").default_value(false).implicit_value(true);
