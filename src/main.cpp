@@ -1,18 +1,25 @@
-#include <spdlog/async.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
-#include <argparse/argparse.hpp>
-#include <iostream>
-#include <string>
+#include "basic_defs.h"
 const std::string main_version = "0.0.1";
 const std::string build_version = GIT_COMMIT_HASH;
 std::shared_ptr<spdlog::logger> logger_ptr;
+#ifdef __OPTIMIZE__
+const bool optimize_enabled = __OPTIMIZE__;
+#else
+const bool optimize_enabled = false;
+#endif
+#ifndef ENABLE_LOG
+const bool global_log_enabled = false;
+#else
+const bool global_log_enabled = true;
+#endif
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("backend", main_version + "-" + build_version);
   argparse::ArgumentParser fsck_command("fsck");
   fsck_command.add_description("Check and fix data");
   program.add_subparser(fsck_command);
+  argparse::ArgumentParser server_command("server");
+  server_command.add_description("Start RESTful server");
+  program.add_subparser(server_command);
   program.add_argument("-d", "--directory").help("Directory to serve").default_value(std::string(".")).nargs(1, 1);
   auto &group = program.add_mutually_exclusive_group();
   group.add_argument("-c", "--consolelog").help("Enable console log").default_value(false).implicit_value(true);
@@ -55,7 +62,8 @@ int main(int argc, char *argv[]) {
     else
       logger_ptr = spdlog::basic_logger_mt<spdlog::async_factory>("file_logger", log_file_name);
   }
-  if (logger_ptr) logger_ptr->info("Starting backend");
-  if (logger_ptr) logger_ptr->info("Data directory: {}", data_directory);
+  LOG->info("Starting backend");
+  LOG->info("Compile optimization enabled: {}", optimize_enabled);
+  LOG->info("Data directory: {}", data_directory);
   return 0;
 }

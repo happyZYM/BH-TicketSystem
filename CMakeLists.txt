@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 Project(Ticket-System)
 include(CTest)
 set(CMAKE_CXX_STANDARD 20)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fsanitize=undefined -fsanitize=leak")
 
@@ -27,6 +30,14 @@ if(STATUS_LENGTH EQUAL 0)
   add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 else()
   add_definitions(-DGIT_COMMIT_HASH="[developing]")
+endif()
+
+# 设置一个布尔类型的选项，用于控制是否启用日志功能
+option(ENABLE_LOG "Enable logging" OFF)
+
+# 如果 ENABLE_LOG 选项为 ON，则定义 ENABLE_LOG 宏
+if (ENABLE_LOG)
+    add_definitions(-DENABLE_LOG)
 endif()
 
 include(FetchContent)
