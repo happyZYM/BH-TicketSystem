@@ -1,0 +1,8 @@
+if(TEST_BPT_ONLY)
+  add_executable(code oj_test_interface_for_bpt.cpp)
+  target_link_libraries(code argparse)
+  set_target_properties(code PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+else()
+  add_executable(oj_test_interface_for_bpt oj_test_interface_for_bpt.cpp)
+  target_link_libraries(oj_test_interface_for_bpt argparse)
+endif()

@@ -1,5 +1,6 @@
 /.vscode
 /.devcontainer
 /.github
+/.cache
 /build
 /.clang-format
