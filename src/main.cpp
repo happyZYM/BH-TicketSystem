@@ -1,3 +1,4 @@
+#include <sockpp/tcp_acceptor.h>
 #include "basic_defs.h"
 const std::string main_version = "0.0.1";
 const std::string build_version = GIT_COMMIT_HASH;
@@ -17,6 +18,14 @@ int main(int argc, char *argv[]) {
   argparse::ArgumentParser fsck_command("fsck");
   fsck_command.add_description("Check and fix data");
   program.add_subparser(fsck_command);
+  argparse::ArgumentParser server_command("server");
+  server_command.add_description("Start a socket server");
+  server_command.add_argument("-p", "--port").help("Port to listen").default_value(8085).nargs(1, 1).scan<'i', int>();
+  server_command.add_argument("-a", "--address")
+      .help("Address to bind")
+      .default_value(std::string("127.0.0.1"))
+      .nargs(1, 1);
+  program.add_subparser(server_command);
   program.add_argument("-d", "--directory").help("Directory to serve").default_value(std::string(".")).nargs(1, 1);
   auto &group = program.add_mutually_exclusive_group();
   group.add_argument("-c", "--consolelog").help("Enable console log").default_value(false).implicit_value(true);
@@ -62,5 +71,20 @@ int main(int argc, char *argv[]) {
   LOG->info("Starting backend");
   LOG->info("Compile optimization enabled: {}", optimize_enabled);
   LOG->info("Data directory: {}", data_directory);
+  bool is_server = program.is_subcommand_used("server");
+  LOG->info("Server mode: {}", is_server);
+  if (is_server) {
+    auto port = server_command.get<int>("--port");
+    auto address = server_command.get<std::string>("--address");
+    LOG->info("Server port: {}", port);
+    LOG->info("Server address: {}", address);
+    LOG->info("Starting server");
+    sockpp::tcp_acceptor acceptor(sockpp::inet_address(address, port));
+    if (!acceptor) {
+      LOG->error("Error creating acceptor: {}", acceptor.last_error_str());
+      return 1;
+    } else
+      LOG->info("successfully bind to address {} port {}", address, port);
+  }
   return 0;
 }

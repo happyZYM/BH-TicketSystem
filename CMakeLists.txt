@@ -60,6 +60,12 @@ FetchContent_Declare(
   URL ${CMAKE_SOURCE_DIR}/deps/spdlog-v1.13.0-mirror.zip
 )
 FetchContent_MakeAvailable(spdlog)
+FetchContent_Declare(
+  sockpp
+  URL_HASH SHA256=d144b3dcc7e9f031a9205395deb334b0b9681e1e7db61c066cca22ec2650a77b
+  URL ${CMAKE_SOURCE_DIR}/deps/sockpp-v1.0.0-mirror.zip
+)
+FetchContent_MakeAvailable(sockpp)
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 enable_testing()
