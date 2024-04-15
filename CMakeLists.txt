@@ -43,6 +43,12 @@ FetchContent_Declare(
   URL ${CMAKE_SOURCE_DIR}/deps/argparse-v3.0-mirror.zip
 )
 FetchContent_MakeAvailable(argparse)
+FetchContent_Declare(
+  spdlog
+  URL_HASH SHA256=9f6763bb76fff7db371f5733626c83352edd7c57899501ab00248fafad9cc504
+  URL ${CMAKE_SOURCE_DIR}/deps/spdlog-v1.13.0-mirror.zip
+)
+FetchContent_MakeAvailable(spdlog)
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 enable_testing()
