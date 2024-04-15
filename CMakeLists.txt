@@ -4,7 +4,31 @@ include(CTest)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fsanitize=undefined -fsanitize=leak")
-option(TEST_BPT_ONLY "Only build BPT tests" ON)
+
+# 执行git命令检查是否有未存档的更改
+execute_process(
+    COMMAND git status --porcelain
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_STATUS_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# 判断输出是否为空，如果有未存档的更改则不做处理
+string(LENGTH "${GIT_STATUS_OUTPUT}" STATUS_LENGTH)
+if(STATUS_LENGTH EQUAL 0)
+  # 执行git命令获取commit信息
+  execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  # 定义宏传递commit信息给C++程序
+  add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+else()
+  add_definitions(-DGIT_COMMIT_HASH="[developing]")
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -19,8 +43,8 @@ FetchContent_Declare(
   URL ${CMAKE_SOURCE_DIR}/deps/argparse-v3.0-mirror.zip
 )
 FetchContent_MakeAvailable(argparse)
-include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 enable_testing()
 add_subdirectory(test)
+add_subdirectory(src)

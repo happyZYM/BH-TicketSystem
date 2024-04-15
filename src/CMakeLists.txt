@@ -1,0 +1,8 @@
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(BACKEND_EXETUABLE_NAME "backend")
+if(OJ_TEST_BACKEND)
+  set(BACKEND_EXETUABLE_NAME "code")
+endif()
+add_executable(${BACKEND_EXETUABLE_NAME} main.cpp)
+target_link_libraries(${BACKEND_EXETUABLE_NAME} argparse)
+set_target_properties(${BACKEND_EXETUABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
