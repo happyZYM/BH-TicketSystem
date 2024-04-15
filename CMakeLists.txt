@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 Project(Ticket-System)
-include(CTest)
+
 set(CMAKE_CXX_STANDARD 20)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -34,6 +34,8 @@ endif()
 
 # 设置一个布尔类型的选项，用于控制是否启用日志功能
 option(ENABLE_LOG "Enable logging" OFF)
+option(OJ_TEST_BPT "Enable OJ test for B+ Tree" ON)
+option(OJ_TEST_BACKEND "Enable OJ test for backend" OFF)
 
 # 如果 ENABLE_LOG 选项为 ON，则定义 ENABLE_LOG 宏
 if (ENABLE_LOG)
@@ -41,6 +43,7 @@ if (ENABLE_LOG)
 endif()
 
 include(FetchContent)
+
 FetchContent_Declare(
   googletest
   URL_HASH SHA256=1f357c27ca988c3f7c6b4bf68a9395005ac6761f034046e9dde0896e3aba00e4
@@ -48,26 +51,33 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
+
 FetchContent_Declare(
   argparse
   URL_HASH SHA256=674e724c2702f0bfef1619161815257a407e1babce30d908327729fba6ce4124
   URL ${CMAKE_SOURCE_DIR}/deps/argparse-v3.0-mirror.zip
 )
 FetchContent_MakeAvailable(argparse)
+
 FetchContent_Declare(
   spdlog
   URL_HASH SHA256=9f6763bb76fff7db371f5733626c83352edd7c57899501ab00248fafad9cc504
   URL ${CMAKE_SOURCE_DIR}/deps/spdlog-v1.13.0-mirror.zip
 )
 FetchContent_MakeAvailable(spdlog)
+
 FetchContent_Declare(
   sockpp
   URL_HASH SHA256=d144b3dcc7e9f031a9205395deb334b0b9681e1e7db61c066cca22ec2650a77b
   URL ${CMAKE_SOURCE_DIR}/deps/sockpp-v1.0.0-mirror.zip
 )
 FetchContent_MakeAvailable(sockpp)
+
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
+
+include(CTest)
 enable_testing()
+
 add_subdirectory(test)
 add_subdirectory(src)
