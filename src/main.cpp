@@ -63,10 +63,15 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   if (log_enabled) {
-    if (log_file_name == "")
-      logger_ptr = spdlog::stderr_color_mt("stderr_logger");
-    else
-      logger_ptr = spdlog::basic_logger_mt<spdlog::async_factory>("file_logger", log_file_name);
+    try {
+      if (log_file_name == "")
+        logger_ptr = spdlog::stderr_color_mt("stderr_logger");
+      else
+        logger_ptr = spdlog::basic_logger_mt<spdlog::async_factory>("file_logger", log_file_name);
+    } catch (const spdlog::spdlog_ex &ex) {
+      std::cerr << "Log initialization failed: " << ex.what() << std::endl;
+      return 1;
+    }
   }
   LOG->info("Starting backend");
   LOG->info("Compile optimization enabled: {}", optimize_enabled);
