@@ -54,8 +54,8 @@ include(GoogleTest)
 
 FetchContent_Declare(
   argparse
-  URL_HASH SHA256=674e724c2702f0bfef1619161815257a407e1babce30d908327729fba6ce4124
-  URL ${CMAKE_SOURCE_DIR}/deps/argparse-v3.0-mirror.zip
+  URL_HASH SHA256=cd07c1208c01bef28c5173f4bad0b2df73dd7316d2f56fc80344952c400fa711
+  URL ${CMAKE_SOURCE_DIR}/deps/argparse-9550b0a-mirror.zip
 )
 FetchContent_MakeAvailable(argparse)
 
