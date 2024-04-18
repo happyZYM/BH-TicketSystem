@@ -73,6 +73,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(sockpp)
 
+FetchContent_Declare(
+  zstd
+  URL_HASH SHA256=3b1c3b46e416d36931efd34663122d7f51b550c87f74de2d38249516fe7d8be5
+  URL ${CMAKE_SOURCE_DIR}/deps/zstd-v1.5.6-mirror.zip
+  SOURCE_SUBDIR build/cmake
+)
+FetchContent_MakeAvailable(zstd)
+
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 

@@ -1,4 +1,5 @@
 #include <sockpp/tcp_acceptor.h>
+#include <zstd.h>
 #include "basic_defs.h"
 const std::string main_version = "0.0.1";
 const std::string build_version = GIT_COMMIT_HASH;
