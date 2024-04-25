@@ -5,7 +5,7 @@
 #pragma pack(push, 1)
 template <typename KeyType, size_t kPageSize = 4096>
 class BPlusTreePage {
-  typedef std::pair<KeyType, b_plus_tree_value_index_t> value_type;
+  typedef std::pair<KeyType, default_numeric_index_t> value_type;
   page_id_t p_n;
   page_id_t p_parent;
   uint8_t is_leaf;

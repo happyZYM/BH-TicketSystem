@@ -87,8 +87,10 @@ class BPlusTreeIndexer {
   }
 
  private:
-  page_id_t root_page_id;  // stored in the first 4 (0-3) bytes of RawDatMemory
-  uint64_t siz;            // stored in the next 8 (4-11) bytes of RawDatMemory
+  page_id_t root_page_id;  // stored in the first 4 (0-3) bytes of RawDatMemory, this directly operates on the buf
+                           // maintained by DiskManager, BufferPoolManager only passes the pointer to it
+  uint64_t siz;            // stored in the next 8 (4-11) bytes of RawDatMemory, this directly operates on the buf
+                           // maintained by DiskManager, BufferPoolManager only passes the pointer to it
   static KeyComparator key_cmp;
   std::shared_mutex latch;
   BufferPoolManager *bpm;
