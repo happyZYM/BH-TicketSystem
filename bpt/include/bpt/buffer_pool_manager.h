@@ -249,6 +249,8 @@ class BufferPoolManager {
   BufferPoolManager &operator=(const BufferPoolManager &) = delete;
   BufferPoolManager &operator=(BufferPoolManager &&) = delete;
   ~BufferPoolManager();
+  inline char *RawDataMemory() { return disk_manager->RawDataMemory(); }
+  inline size_t RawDatMemorySize() { return disk_manager->RawDatMemorySize(); }
   /**
    * @brief Allocate a page on disk. Caller should acquire the latch before calling this function.
    * @return the id of the allocated page

@@ -104,9 +104,7 @@ page_id_t BufferPoolManager::AllocatePage() {
   return page_id;
 }
 
-void BufferPoolManager::DeallocatePage(page_id_t page_id) {
-  disk_manager->DeallocatePage(page_id);
-}
+void BufferPoolManager::DeallocatePage(page_id_t page_id) { disk_manager->DeallocatePage(page_id); }
 
 size_t BufferPoolManager::GetPoolSize() { return pool_size; }
 Page *BufferPoolManager::GetPages() { return pages_; }
@@ -224,6 +222,7 @@ void BufferPoolManager::FlushAllPages() {
   for (auto &pair : page_table_) {
     FlushPage(pair.first);
   }
+  disk_manager->FullyFlush();
 }
 
 auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {

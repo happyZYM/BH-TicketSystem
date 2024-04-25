@@ -34,6 +34,7 @@ class BPlusTreeIndexer {
       // TODO
     }
   };
+  BPlusTreeIndexer() = delete;
   BPlusTreeIndexer(const BPlusTreeIndexer &) = delete;
   BPlusTreeIndexer(BPlusTreeIndexer &&) = delete;
   BPlusTreeIndexer &operator=(const BPlusTreeIndexer &) = delete;
@@ -80,12 +81,17 @@ class BPlusTreeIndexer {
     return true;
   }
   size_t Size() { return siz; }
+  void Flush() {
+    // TODO: do some recording
+    bpm->FlushAllPages();
+  }
 
  private:
-  page_id_t root_page_id;
-  size_t siz;
+  page_id_t root_page_id;  // stored in the first 4 (0-3) bytes of RawDatMemory
+  uint64_t siz;            // stored in the next 8 (4-11) bytes of RawDatMemory
   static KeyComparator key_cmp;
   std::shared_mutex latch;
+  BufferPoolManager *bpm;
 };
 template <typename KeyType, typename KeyComparator>
 KeyComparator BPlusTreeIndexer<KeyType, KeyComparator>::key_cmp = KeyComparator();

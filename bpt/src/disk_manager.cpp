@@ -20,7 +20,7 @@ DiskManager::DiskManager(const std::string &file_path_)
     current_none_empty_page_count = 0;
     raw_data_memory = new char[kPageSize - meta_data_size];
     memset(raw_data_memory, 0, kPageSize - meta_data_size);
-    FlushInternalPage();
+    FullyFlush();
     is_new = true;
   } else {
     // File exists, read metadata from internal page
@@ -45,7 +45,7 @@ char *DiskManager::RawDataMemory() { return raw_data_memory; }
 
 size_t DiskManager::RawDatMemorySize() { return kPageSize - meta_data_size; }
 
-void DiskManager::FlushInternalPage() {
+void DiskManager::FullyFlush() {
   fseek(fp, 0, SEEK_SET);
   fwrite(&first_empty_page_id, sizeof(page_id_t), 1, fp);
   fwrite(&current_total_page_count, sizeof(size_t), 1, fp);
@@ -56,7 +56,7 @@ void DiskManager::FlushInternalPage() {
 
 void DiskManager::Close() {
   if (fp != nullptr) {
-    FlushInternalPage();
+    FullyFlush();
     fclose(fp);
     fp = nullptr;
   }

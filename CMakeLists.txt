@@ -84,11 +84,13 @@ set(ZSTD_BUILD_DEPRECATED OFF CACHE BOOL "Build deprecated module")
 FetchContent_MakeAvailable(zstd)
 
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
+include_directories(${CMAKE_SOURCE_DIR}/snapshot/include)
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 
 include(CTest)
 enable_testing()
 
 add_subdirectory(bpt)
+add_subdirectory(snapshot)
 add_subdirectory(test)
 add_subdirectory(src)

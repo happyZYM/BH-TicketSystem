@@ -21,7 +21,7 @@ class DiskManager {
   ~DiskManager();
   char *RawDataMemory();
   size_t RawDatMemorySize();
-  void FlushInternalPage();
+  void FullyFlush();
   void Close();
   void ReadPage(page_id_t page_id, char *page_data_ptr);
   void WritePage(page_id_t page_id, const char *page_data_ptr);  // in fact, the page_id is the offest
