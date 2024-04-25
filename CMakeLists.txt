@@ -79,6 +79,8 @@ FetchContent_Declare(
   URL ${CMAKE_SOURCE_DIR}/deps/zstd-v1.5.6-mirror.zip
   SOURCE_SUBDIR build/cmake
 )
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "Build shared libraries")
+set(ZSTD_BUILD_DEPRECATED OFF CACHE BOOL "Build deprecated module")
 FetchContent_MakeAvailable(zstd)
 
 include_directories(${CMAKE_SOURCE_DIR}/bpt/include)
