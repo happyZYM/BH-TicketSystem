@@ -87,5 +87,6 @@ include_directories(${CMAKE_SOURCE_DIR}/stlite)
 include(CTest)
 enable_testing()
 
+add_subdirectory(bpt)
 add_subdirectory(test)
 add_subdirectory(src)

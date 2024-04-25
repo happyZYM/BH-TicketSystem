@@ -1,0 +1,1 @@
+add_library(bpt STATIC src/disk_manager.cpp src/replacer.cpp)

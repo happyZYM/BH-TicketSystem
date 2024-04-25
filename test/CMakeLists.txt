@@ -1,5 +1,7 @@
 if(OJ_TEST_BPT)
   add_executable(code oj_test_interface_for_bpt.cpp)
-  target_link_libraries(code argparse)
+  target_link_libraries(code bpt)
   set_target_properties(code PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
+add_executable(replacer_test replacer_test.cpp)
+target_link_libraries(replacer_test bpt GTest::gtest_main)
