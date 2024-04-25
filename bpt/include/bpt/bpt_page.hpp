@@ -8,10 +8,13 @@ class BPlusTreePage {
   typedef std::pair<KeyType, b_plus_tree_value_index_t> value_type;
   page_id_t p_n;
   page_id_t p_parent;
-  unsigned char is_leaf;
-  const static size_t kMaxKeyCount = (kPageSize - sizeof(page_id_t) * 2 - sizeof(unsigned char)) / sizeof(value_type);
+  uint8_t is_leaf;
+  uint16_t key_count;
+  const static size_t kMaxKeyCount =
+      (kPageSize - sizeof(page_id_t) * 2 - sizeof(uint8_t) - sizeof(uint16_t)) / sizeof(value_type);
   value_type p_data[kMaxKeyCount];
-  char filler[kPageSize - sizeof(page_id_t) * 2 - sizeof(unsigned char) - sizeof(value_type) * kMaxKeyCount];
+  char filler[kPageSize - sizeof(page_id_t) * 2 - sizeof(uint8_t) - sizeof(uint16_t) -
+              sizeof(value_type) * kMaxKeyCount];
 };
 #pragma pack(pop)
 #endif  // BPT_PAGE_H
