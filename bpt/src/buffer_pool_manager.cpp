@@ -6,6 +6,85 @@ Page::Page() : mem(new char[kPageSize]) {}
 Page::~Page() { delete[] mem; }
 void Page::ResetMemory() { memset(mem, 0, kPageSize); }
 char *Page::GetData() { return mem; }
+page_id_t Page::GetPageId() { return page_id_; }
+BasicPageGuard::BasicPageGuard(BasicPageGuard &&that) noexcept {
+  bpm_ = that.bpm_;
+  page_ = that.page_;
+  is_dirty_ = that.is_dirty_;
+  that.bpm_ = nullptr;
+  that.page_ = nullptr;
+  that.is_dirty_ = false;
+}
+
+void BasicPageGuard::Drop() {
+  if (bpm_ == nullptr || page_ == nullptr) {
+    return;
+  }
+  bpm_->UnpinPage(page_->GetPageId(), is_dirty_);
+  bpm_ = nullptr;
+  page_ = nullptr;
+  is_dirty_ = false;
+}
+
+auto BasicPageGuard::operator=(BasicPageGuard &&that) noexcept -> BasicPageGuard & {
+  if (this == &that) {
+    return *this;
+  }
+  Drop();
+  bpm_ = that.bpm_;
+  page_ = that.page_;
+  is_dirty_ = that.is_dirty_;
+  that.bpm_ = nullptr;
+  that.page_ = nullptr;
+  that.is_dirty_ = false;
+  return *this;
+}
+
+BasicPageGuard::~BasicPageGuard() { Drop(); };  // NOLINT
+
+ReadPageGuard::ReadPageGuard(ReadPageGuard &&that) noexcept : guard_(std::move(that.guard_)) {}
+
+auto ReadPageGuard::operator=(ReadPageGuard &&that) noexcept -> ReadPageGuard & {
+  if (this == &that) {
+    return *this;
+  }
+  if (guard_.page_ != nullptr) {
+    guard_.page_->RUnlatch();
+  }
+  guard_ = std::move(that.guard_);
+  return *this;
+}
+
+void ReadPageGuard::Drop() {
+  if (guard_.page_ != nullptr) {
+    guard_.page_->RUnlatch();
+  }
+  guard_.Drop();
+}
+
+ReadPageGuard::~ReadPageGuard() { Drop(); }  // NOLINT
+
+WritePageGuard::WritePageGuard(WritePageGuard &&that) noexcept : guard_(std::move(that.guard_)) {}
+
+auto WritePageGuard::operator=(WritePageGuard &&that) noexcept -> WritePageGuard & {
+  if (this == &that) {
+    return *this;
+  }
+  if (guard_.page_ != nullptr) {
+    guard_.page_->WUnlatch();
+  }
+  guard_ = std::move(that.guard_);
+  return *this;
+}
+
+void WritePageGuard::Drop() {
+  if (guard_.page_ != nullptr) {
+    guard_.page_->WUnlatch();
+  }
+  guard_.Drop();
+}
+
+WritePageGuard::~WritePageGuard() { Drop(); }  // NOLINT
 BufferPoolManager::BufferPoolManager(size_t pool_size, size_t replacer_k, DiskManager *disk_manager)
     : pool_size(pool_size),
       replacer_k(replacer_k),
@@ -166,4 +245,30 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
   page->ResetMemory();
   DeallocatePage(page_id);
   return true;
+}
+
+auto BufferPoolManager::FetchPageBasic(page_id_t page_id) -> BasicPageGuard {
+  Page *page = FetchPage(page_id);
+  return {this, page};
+}
+
+auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard {
+  Page *page = FetchPage(page_id);
+  if (page != nullptr) {
+    page->RLatch();
+  }
+  return {this, page};
+}
+
+auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard {
+  Page *page = FetchPage(page_id);
+  if (page != nullptr) {
+    page->WLatch();
+  }
+  return {this, page};
+}
+
+auto BufferPoolManager::NewPageGuarded(page_id_t *page_id) -> BasicPageGuard {
+  Page *page = NewPage(page_id);
+  return {this, page};
 }
