@@ -6,6 +6,8 @@
 class LRUKReplacer {
  public:
   LRUKReplacer() = delete;
+  LRUKReplacer(const LRUKReplacer &) = delete;
+  LRUKReplacer(LRUKReplacer &&) = delete;
   explicit LRUKReplacer(size_t max_frame_count, size_t k_value);
   ~LRUKReplacer();
   bool TryEvictLeastImportant(frame_id_t &frame_id);
@@ -13,6 +15,7 @@ class LRUKReplacer {
   void SetEvictable(frame_id_t frame_id, bool evitable);
   bool TryEvictExactFrame(frame_id_t frame_id);
   LRUKReplacer &operator=(const LRUKReplacer &) = delete;
+  LRUKReplacer &operator=(LRUKReplacer &&) = delete;
   size_t GetCurrentEvitableCount();
 
  private:

@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <string>
 #include "config.h"
-extern const size_t kPageSize;
 class DiskManager {
   /**
    * The Data Structure on Disk:

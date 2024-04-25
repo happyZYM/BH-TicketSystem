@@ -2,6 +2,7 @@
 #include <cstring>
 #include <exception>
 #include <stdexcept>
+const size_t kPageSize = 4096;
 DiskManager::DiskManager(const std::string &file_path_)
     : file_path(file_path_),
       first_empty_page_id(0),
