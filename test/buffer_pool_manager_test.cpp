@@ -254,14 +254,14 @@ class FixLengthString {
   bool operator==(const FixLengthString &other) const { return memcmp(data, other.data, length) == 0; }
 };
 TEST(MemoryRiver, T2) {
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(spdlog::level::err);
   auto logger_ptr = spdlog::stderr_color_mt("stderr_logger");
-  const static size_t string_len = 5;
+  const static size_t string_len = 120;
   typedef FixLengthString<string_len> DataType;
   std::deque<size_t> index_collection;
   std::unordered_map<size_t, std::pair<int, int>> index_track;
   size_t interal_id_tot = 0;
-  const unsigned int RndSeed = 3794;  // testing::GTEST_FLAG(random_seed);
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
   std::mt19937 rnd(RndSeed);
   remove("/tmp/T2.std");
   remove("/tmp/T2.dat");
@@ -269,7 +269,7 @@ TEST(MemoryRiver, T2) {
   {
     sol::MemoryRiver<DataType, kInfoLength> STD("/tmp/T2.std");
     MemoryRiver<DataType, kInfoLength> mr("/tmp/T2.dat");
-    int total_opts = 5;
+    int total_opts = 1000;
     while (total_opts-- > 0) {
       int opt = rnd() % 6;
       switch (opt) {
