@@ -1,14 +1,16 @@
 #include "bpt/buffer_pool_manager.h"
 #include <gtest/gtest.h>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <memory>
 #include <random>
 #include <string>
+#include <vector>
+#include "MemoryRiver.hpp"
 #include "bpt/bpt_page.hpp"
 #include "bpt/config.h"
 #include "bpt/disk_manager.h"
-#include "MemoryRiver.hpp"
 // Demonstrate some basic assertions.
 TEST(HelloTest, BasicAssertions) {
   // Expect two strings not to be equal.
@@ -190,15 +192,26 @@ TEST(StoreTest, Test1) {
   delete disk_manager_ptr;
 }
 
-TEST(MemoryRiver,T1) {
-  MemoryRiver<unsigned long long> river;
+TEST(MemoryRiver, T1) {
+  remove("/tmp/test2.db");
+  typedef unsigned long long DataType;
+  MemoryRiver<DataType> river;
   river.initialise("/tmp/test2.db");
-  int x=3;
-  river.write_info(x,1);
-  unsigned long long dat1=0x1f2f3f4f5f6f7f8f;
-  frame_id_t frame_id = river.write(dat1);
-  for(int i=0;i<100;i++) {
-    dat1++;
-    river.write(dat1);
+  int x = 3;
+  river.write_info(x, 1);
+  DataType dat1 = 0x1f2f3f4f5f6f7f8f;
+  std::vector<DataType> record;
+  std::vector<size_t> id_record;
+  int test_cnt = 3;
+  for (int i = 0; i < test_cnt; i++) {
+    DataType tmp = dat1 + i;
+    size_t element_id = river.write(tmp);
+    record.push_back(tmp);
+    id_record.push_back(element_id);
+  }
+  for (int i = 0; i < test_cnt; i++) {
+    DataType tmp;
+    river.read(tmp, id_record[i]);
+    EXPECT_EQ(record[i], tmp);
   }
 }
