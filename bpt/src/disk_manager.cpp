@@ -3,13 +3,14 @@
 #include <exception>
 #include <stdexcept>
 const size_t kPageSize = 4096;
-DiskManager::DiskManager(const std::string &file_path_)
+DiskManager::DiskManager(const std::string &file_path_, bool renew)
     : file_path(file_path_),
       first_empty_page_id(0),
       current_total_page_count(0),
       current_none_empty_page_count(0),
       raw_data_memory(nullptr),
       fp(nullptr) {
+  if (renew) remove(file_path.c_str());
   fp = fopen(file_path.c_str(), "r+b");
   if (fp == nullptr) {
     // File doesn't exist, create a new one
@@ -46,7 +47,7 @@ char *DiskManager::RawDataMemory() { return raw_data_memory; }
 size_t DiskManager::RawDatMemorySize() { return kPageSize - meta_data_size; }
 
 void DiskManager::FullyFlush() {
-  if(fp==nullptr) return;
+  if (fp == nullptr) return;
   fseek(fp, 0, SEEK_SET);
   fwrite(&first_empty_page_id, sizeof(page_id_t), 1, fp);
   fwrite(&current_total_page_count, sizeof(size_t), 1, fp);

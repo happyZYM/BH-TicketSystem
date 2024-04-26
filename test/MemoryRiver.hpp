@@ -68,7 +68,7 @@ class MemoryRiver {
     }
     if (FN != "") file_name = FN;
     if (file_name == "") return;
-    disk_manager = new DiskManager(file_name);
+    disk_manager = new DiskManager(file_name, true);
     bpm = new BufferPoolManager(100, 5, disk_manager);
     raw_mem = bpm->RawDataMemory();
     memset(raw_mem, 0, bpm->RawDatMemorySize());
@@ -135,10 +135,10 @@ class MemoryRiver {
     guard.AsMut<Page>()->dat.elements[element_id].nxt_blank = first_blank_element_pair_id;
     first_blank_element_pair_id = index;
     guard.AsMut<Page>()->dat.elements_count--;
-    if (guard.AsMut<Page>()->dat.elements_count == 0) {
-      guard.Drop();
-      bpm->DeletePage(frame_id);
-    }
+    // if (guard.AsMut<Page>()->dat.elements_count == 0) {
+    //   guard.Drop();
+    //   bpm->DeletePage(frame_id);
+    // }
   }
 };
 
