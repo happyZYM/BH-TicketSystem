@@ -7,7 +7,7 @@
 #include "bpt/buffer_pool_manager.h"
 #include "bpt/config.h"
 
-TEST(PageGuardTest, DISABLED_SampleTest) {
+TEST(PageGuardTest, SampleTest) {
   const std::string db_name = "/tmp/test.db";
   const size_t buffer_pool_size = 5;
   const size_t k = 2;

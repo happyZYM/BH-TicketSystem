@@ -19,7 +19,7 @@ TEST(Basic, BasicTest) {
   BufferPoolManager buffer_pool_manager(10, 3, &disk_manager);
 }
 
-TEST(BufferPoolManagerTest, DISABLED_BinaryDataTest) {
+TEST(BufferPoolManagerTest, BinaryDataTest) {
   const std::string db_name = "test.db";
   const size_t buffer_pool_size = 10;
   const size_t k = 5;
@@ -85,7 +85,7 @@ TEST(BufferPoolManagerTest, DISABLED_BinaryDataTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(BufferPoolManagerTest, DISABLED_SampleTest) {
+TEST(BufferPoolManagerTest, SampleTest) {
   const std::string db_name = "test.db";
   const size_t buffer_pool_size = 10;
   const size_t k = 5;
