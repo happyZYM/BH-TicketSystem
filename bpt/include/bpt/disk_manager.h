@@ -2,7 +2,7 @@
 #define DISK_MANAGER_H
 #include <cstdio>
 #include <string>
-#include "config.h"
+#include "bpt/config.h"
 class DiskManager {
   /**
    * The Data Structure on Disk:

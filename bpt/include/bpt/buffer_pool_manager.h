@@ -362,6 +362,10 @@ class BufferPoolManager {
 
   /**
    * @brief Flush all the pages in the buffer pool to disk.
+   *
+   * @warning The buffer pool manager will automatically call FlushAllPages before being destroyed, but if the disk
+   * manager is closed, it will do nothing. And Page Guard should be destroyed before Buffer Pool Manager, Buffer Pool
+   * Manager should be destroyed before Disk Manager.
    */
   void FlushAllPages();
 

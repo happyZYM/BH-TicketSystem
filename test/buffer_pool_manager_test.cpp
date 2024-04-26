@@ -5,7 +5,10 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "bpt/bpt_page.hpp"
 #include "bpt/config.h"
+#include "bpt/disk_manager.h"
+#include "MemoryRiver.hpp"
 // Demonstrate some basic assertions.
 TEST(HelloTest, BasicAssertions) {
   // Expect two strings not to be equal.
@@ -139,4 +142,63 @@ TEST(BufferPoolManagerTest, SampleTest) {
 
   delete bpm;
   delete disk_manager;
+}
+
+TEST(StoreTest, Test1) {
+  remove("/tmp/test.db");
+  DiskManager *disk_manager_ptr = new DiskManager("/tmp/test.db");
+  BufferPoolManager *buffer_pool_manager = new BufferPoolManager(10, 3, disk_manager_ptr);
+  char *mem = buffer_pool_manager->RawDataMemory();
+  uint32_t a = 0x1f2f3f4f;
+  memcpy(mem, &a, sizeof(uint32_t));
+  delete buffer_pool_manager;
+  delete disk_manager_ptr;
+  disk_manager_ptr = new DiskManager("/tmp/test.db");
+  buffer_pool_manager = new BufferPoolManager(10, 3, disk_manager_ptr);
+  mem = buffer_pool_manager->RawDataMemory();
+  uint32_t b;
+  memcpy(&b, mem, sizeof(uint32_t));
+  EXPECT_EQ(a, b);
+  delete buffer_pool_manager;
+  delete disk_manager_ptr;
+  disk_manager_ptr = new DiskManager("/tmp/test.db");
+  buffer_pool_manager = new BufferPoolManager(10, 3, disk_manager_ptr);
+  page_id_t page_id;
+  auto basic_guard = buffer_pool_manager->NewPageGuarded(&page_id);
+  typedef BPlusTreePage<unsigned long long> PageType;
+  PageType c;
+  c.data.p_n = 0x1f2f3f4f;
+  c.data.key_count = 0x1f2a;
+  c.data.is_leaf = 0x3e;
+  c.data.p_data[17].first = 0x8f7f6f5f4f3f2f1f;
+  c.filler[0] = 0x1f;
+  *basic_guard.AsMut<PageType>() = c;
+  basic_guard.Drop();
+  auto read_guard = buffer_pool_manager->FetchPageRead(page_id);
+  EXPECT_EQ(c.data.p_n, read_guard.As<PageType>()->data.p_n);
+  EXPECT_EQ(0, memcmp(&c, read_guard.As<PageType>(), sizeof(PageType)));
+  read_guard.Drop();
+  delete buffer_pool_manager;
+  delete disk_manager_ptr;
+  disk_manager_ptr = new DiskManager("/tmp/test.db");
+  buffer_pool_manager = new BufferPoolManager(10, 3, disk_manager_ptr);
+  read_guard = buffer_pool_manager->FetchPageRead(page_id);
+  EXPECT_EQ(c.data.p_n, read_guard.As<PageType>()->data.p_n);
+  EXPECT_EQ(0, memcmp(&c, read_guard.As<PageType>(), sizeof(PageType)));
+  read_guard.Drop();
+  delete buffer_pool_manager;
+  delete disk_manager_ptr;
+}
+
+TEST(MemoryRiver,T1) {
+  MemoryRiver<unsigned long long> river;
+  river.initialise("/tmp/test2.db");
+  int x=3;
+  river.write_info(x,1);
+  unsigned long long dat1=0x1f2f3f4f5f6f7f8f;
+  frame_id_t frame_id = river.write(dat1);
+  for(int i=0;i<100;i++) {
+    dat1++;
+    river.write(dat1);
+  }
 }

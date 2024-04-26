@@ -46,6 +46,7 @@ char *DiskManager::RawDataMemory() { return raw_data_memory; }
 size_t DiskManager::RawDatMemorySize() { return kPageSize - meta_data_size; }
 
 void DiskManager::FullyFlush() {
+  if(fp==nullptr) return;
   fseek(fp, 0, SEEK_SET);
   fwrite(&first_empty_page_id, sizeof(page_id_t), 1, fp);
   fwrite(&current_total_page_count, sizeof(size_t), 1, fp);
@@ -63,11 +64,13 @@ void DiskManager::Close() {
 }
 
 void DiskManager::ReadPage(page_id_t page_id, char *page_data_ptr) {
+  if (fp == nullptr) return;
   fseek(fp, page_id * kPageSize, SEEK_SET);
   fread(page_data_ptr, kPageSize, 1, fp);
 }
 
 void DiskManager::WritePage(page_id_t page_id, const char *page_data_ptr) {
+  if (fp == nullptr) return;
   fseek(fp, page_id * kPageSize, SEEK_SET);
   fwrite(page_data_ptr, kPageSize, 1, fp);
 }

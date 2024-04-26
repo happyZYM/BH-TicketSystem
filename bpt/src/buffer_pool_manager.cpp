@@ -97,7 +97,10 @@ BufferPoolManager::BufferPoolManager(size_t pool_size, size_t replacer_k, DiskMa
     free_list_.emplace_back(static_cast<int>(i));
   }
 }
-BufferPoolManager::~BufferPoolManager() { delete[] pages_; }
+BufferPoolManager::~BufferPoolManager() {
+  FlushAllPages();
+  delete[] pages_;
+}
 
 page_id_t BufferPoolManager::AllocatePage() {
   page_id_t page_id = disk_manager->AllocNewEmptyPageId();
