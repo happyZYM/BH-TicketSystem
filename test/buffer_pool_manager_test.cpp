@@ -177,7 +177,7 @@ TEST(StoreTest, Test1) {
   PageType c;
   c.data.p_n = 0x1f2f3f4f;
   c.data.key_count = 0x1f2a;
-  c.data.is_leaf = 0x3e;
+  c.data.page_status = 0x3e;
   c.data.p_data[17].first = 0x8f7f6f5f4f3f2f1f;
   c.filler[0] = 0x1f;
   *basic_guard.AsMut<PageType>() = c;
@@ -263,13 +263,13 @@ TEST(MemoryRiver, T2) {
   size_t interal_id_tot = 0;
   const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
   std::mt19937 rnd(RndSeed);
-  remove("/tmp/T2.std");
-  remove("/tmp/T2.dat");
+  remove("T2.std");
+  remove("T2.dat");
   const int kInfoLength = 100;
   {
     sol::MemoryRiver<DataType, kInfoLength> STD("/tmp/T2.std");
     MemoryRiver<DataType, kInfoLength> mr("/tmp/T2.dat");
-    int total_opts = 1000;
+    int total_opts = 1000000;
     while (total_opts-- > 0) {
       int opt = rnd() % 6;
       switch (opt) {

@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
+#include <map>
 #include "bpt/bpt.hpp"
+#include "bpt/buffer_pool_manager.h"
 #include "bpt/config.h"
-
+#include "bpt/disk_manager.h"
 namespace bpt_basic_test {
 template <size_t length>
 class FixLengthString {
@@ -9,7 +11,7 @@ class FixLengthString {
   char data[length];
 };
 }  // namespace bpt_basic_test
-TEST(BasicTest, Compile) {
+TEST(BasicTest, Compile) {  // This Test only test the compile of the code
   // test for long long, int, char, long double
   BPlusTreePage<long long> page_long_long;
   static_assert(sizeof(page_long_long) == 4096, "BPlusTreePage size mismatch");
@@ -37,4 +39,17 @@ TEST(BasicTest, Compile) {
   static_assert(sizeof(page_35) == 4096, "BPlusTreePage size mismatch");
   BPlusTreePage<bpt_basic_test::FixLengthString<40>> page_40;
   static_assert(sizeof(page_40) == 4096, "BPlusTreePage size mismatch");
+
+  remove("/tmp/bpt1.db");
+  DiskManager *dm = new DiskManager("/tmp/bpt1.db");
+  BufferPoolManager *bpm = new BufferPoolManager(10, 3, dm);
+  BPlusTreeIndexer<long long, std::less<long long>> bpt(bpm);
+  auto it = bpt.lower_bound(1);
+  bpt.Flush();
+  bpt.Get(1);
+  it.SetValue(2);
+  bpt.Put(1, 2);
+  bpt.Remove(1);
+  delete bpm;
+  delete dm;
 }

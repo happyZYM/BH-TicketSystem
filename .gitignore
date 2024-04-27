@@ -3,4 +3,5 @@
 /.github
 /.cache
 /build
+/mbuild
 /.clang-format
