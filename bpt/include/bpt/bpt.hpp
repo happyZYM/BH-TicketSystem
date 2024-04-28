@@ -88,8 +88,8 @@ class BPlusTreeIndexer {
                           .second;
       }
       // Then, use memmove to move the key_point pairs
-      fprintf(stderr, "parent_page_guard.template As<PageType>()->data.key_count = %d\n",
-              (int)parent_page_guard.template As<PageType>()->data.key_count);
+      // fprintf(stderr, "parent_page_guard.template As<PageType>()->data.key_count = %d\n",
+      //         (int)parent_page_guard.template As<PageType>()->data.key_count);
       if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
         memmove(parent_page_guard.template AsMut<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second + 1,
                 parent_page_guard.template As<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second,
@@ -178,10 +178,10 @@ class BPlusTreeIndexer {
       new_page_guard.template AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
       page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf - 1;
     }
-    fprintf(stderr, "Evicting page %d\n", (int)pos.path.back().first.PageId());
-    fprintf(stderr, "page id of page_guard = %d\n", (int)page_guard.PageId());
+    // fprintf(stderr, "Evicting page %d\n", (int)pos.path.back().first.PageId());
+    // fprintf(stderr, "page id of page_guard = %d\n", (int)page_guard.PageId());
     pos.path.pop_back();
-    fprintf(stderr, "the page id of the res page in pos %d\n", (int)pos.path.back().first.PageId());
+    // fprintf(stderr, "the page id of the res page in pos %d\n", (int)pos.path.back().first.PageId());
     if (pos.path.size() == 1) {
       // we have split the root page, update and quit
       page_guard.template AsMut<PageType>()->data.page_status &= ~PageStatusType::ROOT;
@@ -199,7 +199,7 @@ class BPlusTreeIndexer {
   }
   void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value,
                      bool is_fixing_up_recursive = false) {
-    fprintf(stderr, "_ActualDataType::kMaxKeyCount = %d\n", (int)_ActualDataType::kMaxKeyCount);
+    // fprintf(stderr, "_ActualDataType::kMaxKeyCount = %d\n", (int)_ActualDataType::kMaxKeyCount);
     if (siz == 0) {
       // special case for the first entry
       BasicPageGuard new_page_guard = bpm->NewPageGuarded(&root_page_id);
@@ -218,8 +218,8 @@ class BPlusTreeIndexer {
               (page_guard.template As<PageType>()->data.key_count - pos.path.back().second) * sizeof(key_index_pair_t));
       page_guard.template AsMut<PageType>()->data.p_data[pos.path.back().second] = std::make_pair(key, value);
       page_guard.template AsMut<PageType>()->data.key_count++;
-      fprintf(stderr, "page_guard.template As<PageType>()->data.key_count = %d\n",
-              (int)page_guard.template As<PageType>()->data.key_count);
+      // fprintf(stderr, "page_guard.template As<PageType>()->data.key_count = %d\n",
+      // (int)page_guard.template As<PageType>()->data.key_count);
       if (!is_fixing_up_recursive) ++siz;
       return;
     }
@@ -279,8 +279,8 @@ class BPlusTreeIndexer {
           page_guard.PageId());
       new_root_page_guard.AsMut<PageType>()->data.p_data[1] = std::make_pair(KeyType(), new_page_id);
       if (!is_fixing_up_recursive) ++siz;
-      fprintf(stderr, "new_page_guard.AsMut<PageType>()->data.key_count = %d\n",
-              (int)new_page_guard.AsMut<PageType>()->data.key_count);
+      // fprintf(stderr, "new_page_guard.AsMut<PageType>()->data.key_count = %d\n",
+      // (int)new_page_guard.AsMut<PageType>()->data.key_count);
       return;
     }
     assert(pos.path.size() >= 2);
@@ -302,7 +302,7 @@ class BPlusTreeIndexer {
         page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
     pos.path[pos.path.size() - 2].second++;
     pos.path.pop_back();
-    fprintf(stderr, "begin processing recursively\n");
+    // fprintf(stderr, "begin processing recursively\n");
     InsertEntryAt(pos,
                   new_page_guard.template As<PageType>()
                       ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
@@ -346,11 +346,15 @@ class BPlusTreeIndexer {
 
    public:
     const KeyType &GetKey() const {
+#ifdef ENABLE_ADVANCED_FEATURE
       std::shared_lock<std::shared_mutex> lock_guard(domain->latch);
+#endif
       return guard.As<PageType>()->data.p_data[internal_offset].first;
     }
     const b_plus_tree_value_index_t &GetValue() {
+#ifdef ENABLE_ADVANCED_FEATURE
       std::shared_lock<std::shared_mutex> lock_guard(domain->latch);
+#endif
       return guard.As<PageType>()->data.p_data[internal_offset].second;
     }
     bool operator==(iterator &that) {
@@ -358,7 +362,9 @@ class BPlusTreeIndexer {
              (is_end || (guard.PageId() == that.guard.PageId() && internal_offset == that.internal_offset));
     }
     void SetValue(b_plus_tree_value_index_t new_value) {
+#ifdef ENABLE_ADVANCED_FEATURE
       std::unique_lock<std::shared_mutex> lock_guard(domain->latch);
+#endif
       guard.AsMut<PageType>()->data.p_data[internal_offset].second = new_value;
     }
     // only support ++it
@@ -386,11 +392,15 @@ class BPlusTreeIndexer {
 
    public:
     const KeyType &GetKey() {
+#ifdef ENABLE_ADVANCED_FEATURE
       std::shared_lock<std::shared_mutex> lock_guard(domain->latch);
+#endif
       return guard.As<PageType>()->data.p_data[internal_offset].first;
     }
     const b_plus_tree_value_index_t &GetValue() {
+#ifdef ENABLE_ADVANCED_FEATURE
       std::shared_lock<std::shared_mutex> lock_guard(domain->latch);
+#endif
       return guard.As<PageType>()->data.p_data[internal_offset].second;
     }
     bool operator==(const_iterator &that) {
@@ -438,7 +448,9 @@ class BPlusTreeIndexer {
     return res;
   }
   iterator lower_bound(const KeyType &key) {  // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::shared_lock<std::shared_mutex> guard(latch);
+#endif
     PositionSignType pos(std::move(FindPosition(key)));
     iterator res;
     res.domain = this;
@@ -449,7 +461,9 @@ class BPlusTreeIndexer {
     return res;
   }
   const_iterator lower_bound_const(const KeyType &key) {  // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::shared_lock<std::shared_mutex> guard(latch);
+#endif
     PositionSignType pos(std::move(FindPosition(key)));
     const_iterator res;
     res.domain = this;
@@ -460,14 +474,18 @@ class BPlusTreeIndexer {
     return res;
   }
   b_plus_tree_value_index_t Get(const KeyType &key) {  // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::shared_lock<std::shared_mutex> guard(latch);
+#endif
     auto it = lower_bound_const(key);
     if (it == end_const()) return kInvalidValueIndex;
     if (key_cmp(key, it.GetKey())) return kInvalidValueIndex;
     return it.GetValue();
   }
   bool Put(const KeyType &key, b_plus_tree_value_index_t value) {  // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::unique_lock<std::shared_mutex> guard(latch);
+#endif
     PositionSignType pos(std::move(FindPosition(key)));
     if (!pos.is_end &&
         !key_cmp(key, pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].first)) {
@@ -478,7 +496,9 @@ class BPlusTreeIndexer {
     return true;
   }
   bool Remove(const KeyType &key) {  // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::unique_lock<std::shared_mutex> guard(latch);
+#endif
     PositionSignType pos(std::move(FindPosition(key)));
     if (pos.is_end) return false;
     if (key_cmp(key, pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].first))
@@ -488,7 +508,9 @@ class BPlusTreeIndexer {
   }
   size_t Size() { return siz; }  // Finish Design
   void Flush() {                 // Finish Design
+#ifdef ENABLE_ADVANCED_FEATURE
     std::unique_lock<std::shared_mutex> guard(latch);
+#endif
     memcpy(raw_data_memory, &root_page_id, sizeof(page_id_t));
     memcpy(raw_data_memory + sizeof(page_id_t), &siz, sizeof(bpt_size_t));
     bpm->FlushAllPages();
@@ -500,7 +522,9 @@ class BPlusTreeIndexer {
   bpt_size_t siz;          // stored in the next 8 (4-11) bytes of RawDatMemory, this directly operates on the buf
                            // maintained by DiskManager, BufferPoolManager only passes the pointer to it
   static KeyComparator key_cmp;
+#ifdef ENABLE_ADVANCED_FEATURE
   std::shared_mutex latch;
+#endif
   BufferPoolManager *bpm;
   char *raw_data_memory;
 };

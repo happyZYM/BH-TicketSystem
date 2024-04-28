@@ -18,6 +18,7 @@ class Page {
   void ResetMemory();
   char *GetData();
   page_id_t GetPageId();
+#ifdef ENABLE_ADVANCED_FEATURE
   /** Acquire the page write latch. */
   inline void WLatch() { rwlatch_.lock(); }
 
@@ -29,11 +30,14 @@ class Page {
 
   /** Release the page read latch. */
   inline void RUnlatch() { rwlatch_.unlock_shared(); }
+#endif
 
   inline size_t GetPinCount() { return pin_count_; }
 
  private:
+#ifdef ENABLE_ADVANCED_FEATURE
   std::shared_mutex rwlatch_;
+#endif
   char *mem;
   bool is_dirty_;
   size_t pin_count_;
@@ -387,7 +391,9 @@ class BufferPoolManager {
   const size_t replacer_k;
   LRUKReplacer replacer;
   DiskManager *disk_manager;
+#ifdef ENABLE_ADVANCED_FEATURE
   std::mutex latch;
+#endif
   Page *pages_;
   std::unordered_map<page_id_t, frame_id_t> page_table_;
   std::list<frame_id_t> free_list_;

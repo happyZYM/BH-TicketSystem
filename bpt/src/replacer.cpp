@@ -37,7 +37,9 @@ LRUKReplacer::~LRUKReplacer() {
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool evitable) {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (!hash_for_record[frame_id].active) {
     return;
   }
@@ -72,7 +74,9 @@ LRUKReplacer::MainChainNodeType *LRUKReplacer::AddRecordToMainChain(frame_id_t f
 }
 
 bool LRUKReplacer::TryEvictExactFrame(frame_id_t frame_id) {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (!hash_for_record[frame_id].active) {
     return false;
   }
@@ -90,16 +94,22 @@ bool LRUKReplacer::TryEvictExactFrame(frame_id_t frame_id) {
 }
 
 bool LRUKReplacer::TryEvictLeastImportant(frame_id_t &frame_id) {
+#ifdef ENABLE_ADVANCED_FEATURE
   latch.lock();
+#endif
   if (current_evitable_count_ == 0) {
+#ifdef ENABLE_ADVANCED_FEATURE
     latch.unlock();
+#endif
     return false;
   }
   LRUChainNodeType *node = LRU_chain_head_guard->next;
   while (node != LRU_chain_tail_guard) {
     frame_id = node->frame_id;
     if (hash_for_record[frame_id].evitable) {
+#ifdef ENABLE_ADVANCED_FEATURE
       latch.unlock();
+#endif
       return TryEvictExactFrame(frame_id);
     }
     node = node->next;
@@ -108,17 +118,23 @@ bool LRUKReplacer::TryEvictLeastImportant(frame_id_t &frame_id) {
   while (main_chain_node != LRUK_chain_tail_guard) {
     frame_id = main_chain_node->frame_id;
     if (hash_for_record[frame_id].evitable) {
+#ifdef ENABLE_ADVANCED_FEATURE
       latch.unlock();
+#endif
       return TryEvictExactFrame(frame_id);
     }
     main_chain_node = main_chain_node->next;
   }
+#ifdef ENABLE_ADVANCED_FEATURE
   latch.unlock();
+#endif
   return false;
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   current_timestamp_++;
   if (!hash_for_record[frame_id].active) {
     hash_for_record[frame_id].active = true;

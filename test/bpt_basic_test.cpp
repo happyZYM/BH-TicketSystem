@@ -216,8 +216,8 @@ TEST(BasicTest, Split_in_Put_Simple_3) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 16;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   remove("/tmp/bpt5.db");
   DiskManager *dm = new DiskManager("/tmp/bpt5.db");
   BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
@@ -260,8 +260,8 @@ TEST(HarderTest, Split_in_Put_Harder_1) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 1360 - 4;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   remove("/tmp/bpt6.db");
   DiskManager *dm = new DiskManager("/tmp/bpt6.db");
   BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
@@ -304,8 +304,8 @@ TEST(HarderTest, Split_in_Put_Harder_2) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 2030;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   remove("/tmp/bpt7.db");
   DiskManager *dm = new DiskManager("/tmp/bpt7.db");
   BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
@@ -348,8 +348,8 @@ TEST(HarderTest, Split_in_Put_Harder_3) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 800;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt8.db";
   std::vector<KeyType> keys;
   const int ops = 1000;
@@ -364,7 +364,7 @@ TEST(HarderTest, Split_in_Put_Harder_3) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -394,8 +394,8 @@ TEST(HarderTest, Split_in_Put_Harder_4) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 800;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt9.db";
   std::vector<KeyType> keys;
   const int ops = 1000;
@@ -410,7 +410,7 @@ TEST(HarderTest, Split_in_Put_Harder_4) {
   }
   sort(keys.begin(), keys.end());
   // std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -440,8 +440,8 @@ TEST(HarderTest, Split_in_Put_Harder_5) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 800;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt10.db";
   std::vector<KeyType> keys;
   const int ops = 15 + rnd() % 20;
@@ -456,7 +456,7 @@ TEST(HarderTest, Split_in_Put_Harder_5) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -486,8 +486,8 @@ TEST(HarderTest, Split_in_Put_Harder_6) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 1000;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt11.db";
   std::vector<KeyType> keys;
   const int ops = 15 + rnd() % 20;
@@ -502,7 +502,7 @@ TEST(HarderTest, Split_in_Put_Harder_6) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -532,8 +532,8 @@ TEST(HarderTest, Split_in_Put_Harder_7) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 2000;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt12.db";
   std::vector<KeyType> keys;
   const int ops = 15 + rnd() % 20;
@@ -548,7 +548,7 @@ TEST(HarderTest, Split_in_Put_Harder_7) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -578,8 +578,8 @@ TEST(HarderTest, Split_in_Put_Harder_8) {
   std::mt19937 rnd(RndSeed);
   const int str_len = 1300;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
-  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
-          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  // fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          // sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt13.db";
   std::vector<KeyType> keys;
   const int ops = 15 + rnd() % 20;
@@ -594,7 +594,7 @@ TEST(HarderTest, Split_in_Put_Harder_8) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
-  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  // for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
@@ -613,6 +613,44 @@ TEST(HarderTest, Split_in_Put_Harder_8) {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {
       ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_9) {
+  std::vector<std::pair<int, int>> entries;
+  const int kNumberOfKeys = 100000;
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  for (int i = 0; i < kNumberOfKeys; i++) {
+    entries.push_back({i + 3, rnd()});
+  }
+  std::shuffle(entries.begin(), entries.end(), rnd);
+  remove("/tmp/bpt14.db");
+  DiskManager *dm = new DiskManager("/tmp/bpt14.db");
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<long long, std::less<long long>> bpt(bpm);
+    for (int i = 0; i < kNumberOfKeys; i++) {
+      bpt.Put(entries[i].first, entries[i].second);
+      ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
+    }
+    std::shuffle(entries.begin(), entries.end(), rnd);
+    for (int i = 0; i < kNumberOfKeys; i++) {
+      ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager("/tmp/bpt14.db");
+  bpm = new BufferPoolManager(20, 3, dm);
+  std::shuffle(entries.begin(), entries.end(), rnd);
+  {
+    BPlusTreeIndexer<long long, std::less<long long>> bpt(bpm);
+    for (int i = 0; i < kNumberOfKeys; i++) {
+      ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
     }
   }
   delete bpm;

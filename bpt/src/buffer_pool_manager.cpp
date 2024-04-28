@@ -48,17 +48,21 @@ auto ReadPageGuard::operator=(ReadPageGuard &&that) noexcept -> ReadPageGuard & 
   if (this == &that) {
     return *this;
   }
+#ifdef ENABLE_ADVANCED_FEATURE
   if (guard_.page_ != nullptr) {
     guard_.page_->RUnlatch();
   }
+#endif
   guard_ = std::move(that.guard_);
   return *this;
 }
 
 void ReadPageGuard::Drop() {
+#ifdef ENABLE_ADVANCED_FEATURE
   if (guard_.page_ != nullptr) {
     guard_.page_->RUnlatch();
   }
+#endif
   guard_.Drop();
 }
 
@@ -70,17 +74,21 @@ auto WritePageGuard::operator=(WritePageGuard &&that) noexcept -> WritePageGuard
   if (this == &that) {
     return *this;
   }
+#ifdef ENABLE_ADVANCED_FEATURE
   if (guard_.page_ != nullptr) {
     guard_.page_->WUnlatch();
   }
+#endif
   guard_ = std::move(that.guard_);
   return *this;
 }
 
 void WritePageGuard::Drop() {
+#ifdef ENABLE_ADVANCED_FEATURE
   if (guard_.page_ != nullptr) {
     guard_.page_->WUnlatch();
   }
+#endif
   guard_.Drop();
 }
 
@@ -112,7 +120,9 @@ void BufferPoolManager::DeallocatePage(page_id_t page_id) { disk_manager->Deallo
 size_t BufferPoolManager::GetPoolSize() { return pool_size; }
 Page *BufferPoolManager::GetPages() { return pages_; }
 auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (!free_list_.empty()) {
     int internal_page_object_offset = free_list_.front();
     free_list_.pop_front();
@@ -148,7 +158,9 @@ auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
 }
 
 auto BufferPoolManager::FetchPage(page_id_t page_id) -> Page * {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (page_table_.find(page_id) != page_table_.end()) {
     frame_id_t frame_id = page_table_[page_id];
     Page *page = &pages_[frame_id];
@@ -190,7 +202,9 @@ auto BufferPoolManager::FetchPage(page_id_t page_id) -> Page * {
 }
 
 auto BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) -> bool {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (page_table_.find(page_id) == page_table_.end()) {
     return false;
   }
@@ -210,7 +224,9 @@ auto BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) -> bool {
 }
 
 auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   frame_id_t frame_id = page_table_[page_id];
   if (page_table_.find(page_id) == page_table_.end()) {
     return false;
@@ -229,7 +245,9 @@ void BufferPoolManager::FlushAllPages() {
 }
 
 auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
+#ifdef ENABLE_ADVANCED_FEATURE
   std::lock_guard<std::mutex> guard(latch);
+#endif
   if (page_table_.find(page_id) == page_table_.end()) {
     return true;
   }
@@ -258,18 +276,22 @@ auto BufferPoolManager::FetchPageBasic(page_id_t page_id) -> BasicPageGuard {
 auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard {
   Page *page = FetchPage(page_id);
   if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
+#ifdef ENABLE_ADVANCED_FEATURE
   if (page != nullptr) {
     page->RLatch();
   }
+#endif
   return {this, page};
 }
 
 auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard {
   Page *page = FetchPage(page_id);
   if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
+#ifdef ENABLE_ADVANCED_FEATURE
   if (page != nullptr) {
     page->WLatch();
   }
+#endif
   return {this, page};
 }
 

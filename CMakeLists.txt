@@ -32,14 +32,14 @@ else()
   add_definitions(-DGIT_COMMIT_HASH="[developing]")
 endif()
 
-# 设置一个布尔类型的选项，用于控制是否启用日志功能
-option(ENABLE_LOG "Enable logging" OFF)
+# 设置一个布尔类型的选项，用于控制是否启用高级功能，如程序日志、并发、快照等
+option(ENABLE_ADVANCED_FEATURE "Enable advanced features" OFF)
 option(OJ_TEST_BPT "Enable OJ test for B+ Tree" ON)
 option(OJ_TEST_BACKEND "Enable OJ test for backend" OFF)
 
-# 如果 ENABLE_LOG 选项为 ON，则定义 ENABLE_LOG 宏
-if (ENABLE_LOG)
-    add_definitions(-DENABLE_LOG)
+# 如果 ENABLE_ADVANCED_FEATURE 选项为 ON，则定义 ENABLE_ADVANCED_FEATURE 宏
+if (ENABLE_ADVANCED_FEATURE)
+    add_definitions(-DENABLE_ADVANCED_FEATURE)
 endif()
 
 include(FetchContent)

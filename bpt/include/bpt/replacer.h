@@ -69,7 +69,9 @@ class LRUKReplacer {
   size_t current_evitable_count_{0};
   size_t max_frame_count;
   size_t k_value;
+#ifdef ENABLE_ADVANCED_FEATURE
   std::mutex latch;
+#endif
   LRUKRecord *hash_for_record;
 };
 #endif

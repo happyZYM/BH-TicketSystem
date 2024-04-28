@@ -8,7 +8,7 @@ const bool optimize_enabled = __OPTIMIZE__;
 #else
 const bool optimize_enabled = false;
 #endif
-#ifndef ENABLE_LOG
+#ifndef ENABLE_ADVANCED_FEATURE
 const bool global_log_enabled = false;
 #else
 const bool global_log_enabled = true;
