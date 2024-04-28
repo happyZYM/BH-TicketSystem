@@ -10,7 +10,6 @@ struct ActualDataType {
   in_page_key_count_t key_count;
   const static size_t kMaxKeyCount =
       (kPageSize - sizeof(page_id_t) - sizeof(page_status_t) - sizeof(in_page_key_count_t)) / sizeof(value_type);
-  const static size_t kMinNumberOfKeysForInternal = (kMaxKeyCount) / 2;
   const static size_t kMinNumberOfKeysForLeaf = (kMaxKeyCount + 1) / 2;
   value_type p_data[kMaxKeyCount];
   static_assert(kMaxKeyCount >= 2, "kMaxKeyCount must be greater than or equal to 2");

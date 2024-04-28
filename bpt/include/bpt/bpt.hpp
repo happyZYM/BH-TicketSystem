@@ -64,7 +64,8 @@ class BPlusTreeIndexer {
       res.is_end = false;
     return res;
   }
-  void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value) {
+  void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value,
+                     bool is_fixing_up_recursive = false) {
     fprintf(stderr, "_ActualDataType::kMaxKeyCount = %d\n", (int)_ActualDataType::kMaxKeyCount);
     if (siz == 0) {
       // special case for the first entry
@@ -73,7 +74,7 @@ class BPlusTreeIndexer {
       new_page_guard.AsMut<PageType>()->data.key_count = 1;
       new_page_guard.AsMut<PageType>()->data.p_data[0] = std::make_pair(key, value);
       new_page_guard.AsMut<PageType>()->data.p_n = 0;
-      ++siz;
+      if (!is_fixing_up_recursive) ++siz;
       return;
     }
     auto &page_guard = pos.path.back().first;
@@ -86,7 +87,7 @@ class BPlusTreeIndexer {
       page_guard.template AsMut<PageType>()->data.key_count++;
       fprintf(stderr, "page_guard.template As<PageType>()->data.key_count = %d\n",
               (int)page_guard.template As<PageType>()->data.key_count);
-      ++siz;
+      if (!is_fixing_up_recursive) ++siz;
       return;
     }
     // In our case, the tree is not too high, so we do not consider borrowing from siblings, we just split the page.
@@ -96,7 +97,10 @@ class BPlusTreeIndexer {
     page_id_t new_page_id;
     BasicPageGuard new_page_guard = bpm->NewPageGuarded(&new_page_id);
     // Then move the last kMinNumberOfKeysForLeaf keys(including newly inserted) to the new page
-    new_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::LEAF;
+    if (!is_fixing_up_recursive)
+      new_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::LEAF;
+    else
+      new_page_guard.AsMut<PageType>()->data.page_status = 0;  // PageStatusType::INTERNAL;
     new_page_guard.AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
     page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf;
     new_page_guard.AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
@@ -131,7 +135,7 @@ class BPlusTreeIndexer {
       page_guard.template AsMut<PageType>()->data.key_count++;
     }
     if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) {
-      // special case for the root page
+      // special case for the root page being splited
       page_guard.template AsMut<PageType>()->data.page_status &= ~PageStatusType::ROOT;
       BasicPageGuard new_root_page_guard = bpm->NewPageGuarded(&root_page_id);
       new_root_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::ROOT;
@@ -140,12 +144,88 @@ class BPlusTreeIndexer {
           page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first,
           page_guard.PageId());
       new_root_page_guard.AsMut<PageType>()->data.p_data[1] = std::make_pair(KeyType(), new_page_id);
-      ++siz;
+      if (!is_fixing_up_recursive) ++siz;
       fprintf(stderr, "new_page_guard.AsMut<PageType>()->data.key_count = %d\n",
               (int)new_page_guard.AsMut<PageType>()->data.key_count);
       return;
     }
-    throw std::runtime_error("Not implemented yet: InsertEntryAt");
+    assert(pos.path.size() >= 2);
+    auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
+    bool is_in_right_skew_path = false;
+    if (pos.path[pos.path.size() - 2].second == parent_page_guard.template As<PageType>()->data.key_count) {
+      is_in_right_skew_path = true;
+    }
+    if (pos.path.size() == 2 || pos.path[pos.path.size() - 3].second ==
+                                    pos.path[pos.path.size() - 3].first.template As<PageType>()->data.key_count) {
+      is_in_right_skew_path = true;
+    }
+    if (is_in_right_skew_path) {
+      do {
+        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+            page_guard.template As<PageType>()
+                ->data.p_data[page_guard.template As<PageType>()->data.key_count - 1]
+                .first;
+        pos.path[pos.path.size() - 2].second++;
+        // now check we are able to "insert" (new_page_guard.template
+        // As<PageType>()->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1].first, new_page_id)
+        // at pos
+        if (parent_page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+          // Has enough space, reach end, just insert it
+          // first, manually move the last pointer
+          if (parent_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount - 1) {
+            parent_page_guard.template AsMut<PageType>()->data.p_n =
+                parent_page_guard.template As<PageType>()
+                    ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
+                    .second;
+          } else {
+            parent_page_guard.template AsMut<PageType>()
+                ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count + 1]
+                .second = parent_page_guard.template As<PageType>()
+                              ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
+                              .second;
+          }
+          // Then, use memmove to move the key_point pairs
+          fprintf(stderr, "parent_page_guard.template As<PageType>()->data.key_count = %d\n",
+                  (int)parent_page_guard.template As<PageType>()->data.key_count);
+          if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
+            memmove(
+                parent_page_guard.template AsMut<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second + 1,
+                parent_page_guard.template As<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second,
+                (parent_page_guard.template As<PageType>()->data.key_count - pos.path[pos.path.size() - 2].second) *
+                    sizeof(key_index_pair_t));
+          }
+          // Then Set the key_point pair
+          if (pos.path[pos.path.size() - 2].second < _ActualDataType::kMaxKeyCount) {
+            parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second] =
+                std::make_pair(new_page_guard.template As<PageType>()
+                                   ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
+                                   .first,
+                               new_page_id);
+          } else {
+            // just set p_n
+            parent_page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
+          }
+          parent_page_guard.template AsMut<PageType>()->data.key_count++;
+          break;
+        }
+        // TODO: process and prepare for next round
+        throw std::runtime_error("Not implemented yet: InsertEntryAt");
+      } while (true);
+      if (!is_fixing_up_recursive) ++siz;
+      return;
+    }
+    parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+        page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+    pos.path[pos.path.size() - 2].second++;
+    pos.path.pop_back();
+    fprintf(stderr, "begin processing recursively\n");
+    InsertEntryAt(pos,
+                  new_page_guard.template As<PageType>()
+                      ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
+                      .first,
+                  new_page_id, true);
+    if (!is_fixing_up_recursive) ++siz;
+    return;
   }
   void RemoveEntryAt(PositionSignType &pos) {
     if (siz == 1) {
