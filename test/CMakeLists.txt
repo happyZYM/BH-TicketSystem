@@ -10,6 +10,6 @@ target_link_libraries(buffer_pool_manager_test bpt GTest::gtest_main spdlog::spd
 add_executable(page_guard_test page_guard_test.cpp)
 target_link_libraries(page_guard_test bpt GTest::gtest_main)
 add_executable(bpt_basic_test bpt_basic_test.cpp)
-target_link_libraries(bpt_basic_test bpt GTest::gtest_main)
+target_link_libraries(bpt_basic_test bpt GTest::gtest_main spdlog::spdlog)
 add_executable(buffer_pool_manager_extreme_test buffer_pool_manager_extreme_test.cpp)
 target_link_libraries(buffer_pool_manager_extreme_test bpt)

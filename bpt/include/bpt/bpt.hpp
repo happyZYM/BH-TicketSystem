@@ -1,6 +1,8 @@
 #ifndef BPT_HPP
 #define BPT_HPP
 #include <algorithm>
+#include <cassert>
+#include <cstdio>
 #include <cstring>
 #include <shared_mutex>
 #include <vector>
@@ -18,7 +20,7 @@ class BPlusTreeIndexer {
   typedef BPlusTreePage<KeyType> PageType;
   typedef ActualDataType<KeyType> _ActualDataType;
   typedef std::pair<KeyType, default_numeric_index_t> key_index_pair_t;
-  typedef std::pair<KeyType, b_plus_tree_value_index_t> value_type;
+  // typedef std::pair<KeyType, b_plus_tree_value_index_t> value_type;
 
  private:
   struct PositionSignType {
@@ -44,7 +46,7 @@ class BPlusTreeIndexer {
     while ((res.path.back().first.template As<PageType>()->data.page_status & PageStatusType::LEAF) == 0) {
       default_numeric_index_t nxt_page_id;
       in_page_key_count_t internal_id = res.path.back().second;
-      if (internal_id < res.path.back().first.template As<PageType>()->data.key_count)
+      if (internal_id < _ActualDataType::kMaxKeyCount)
         nxt_page_id = res.path.back().first.template As<PageType>()->data.p_data[internal_id].second;
       else
         nxt_page_id = res.path.back().first.template As<PageType>()->data.p_n;
@@ -56,10 +58,14 @@ class BPlusTreeIndexer {
           next_page_guard.As<PageType>()->data.p_data;
       res.path.push_back(std::make_pair(std::move(next_page_guard), nxt));
     }
-    if (nxt == res.path.back().first.template As<PageType>()->data.key_count) res.is_end = true;
+    if (nxt == res.path.back().first.template As<PageType>()->data.key_count)
+      res.is_end = true;
+    else
+      res.is_end = false;
     return res;
   }
   void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value) {
+    fprintf(stderr, "_ActualDataType::kMaxKeyCount = %d\n", (int)_ActualDataType::kMaxKeyCount);
     if (siz == 0) {
       // special case for the first entry
       BasicPageGuard new_page_guard = bpm->NewPageGuarded(&root_page_id);
@@ -75,14 +81,71 @@ class BPlusTreeIndexer {
       // case 1: the page has enough space
       memmove(page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second + 1,
               page_guard.template As<PageType>()->data.p_data + pos.path.back().second,
-              (page_guard.template As<PageType>()->data.key_count - pos.path.back().second) * sizeof(value_type));
+              (page_guard.template As<PageType>()->data.key_count - pos.path.back().second) * sizeof(key_index_pair_t));
       page_guard.template AsMut<PageType>()->data.p_data[pos.path.back().second] = std::make_pair(key, value);
       page_guard.template AsMut<PageType>()->data.key_count++;
+      fprintf(stderr, "page_guard.template As<PageType>()->data.key_count = %d\n",
+              (int)page_guard.template As<PageType>()->data.key_count);
       ++siz;
       return;
     }
+    // In our case, the tree is not too high, so we do not consider borrowing from siblings, we just split the page.
+    // We first construct a new page, and then move half of the keys to the new page.
+    // The check if we split the root page, we just handle it.
+    // Otherwise, what we need to do is modify the parent page, then "insert" a new key to the parent page
+    page_id_t new_page_id;
+    BasicPageGuard new_page_guard = bpm->NewPageGuarded(&new_page_id);
+    // Then move the last kMinNumberOfKeysForLeaf keys(including newly inserted) to the new page
+    new_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::LEAF;
+    new_page_guard.AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
+    page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf;
+    new_page_guard.AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
+    page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
+    if (pos.path.back().second <= _ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf) {
+      // the new key is in the first half
+      memmove(new_page_guard.template AsMut<PageType>()->data.p_data,
+              page_guard.template As<PageType>()->data.p_data + _ActualDataType::kMaxKeyCount -
+                  _ActualDataType::kMinNumberOfKeysForLeaf,
+              _ActualDataType::kMinNumberOfKeysForLeaf * sizeof(key_index_pair_t));
+      memmove(page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second + 1,
+              page_guard.template As<PageType>()->data.p_data + pos.path.back().second,
+              (page_guard.template As<PageType>()->data.key_count - pos.path.back().second) * sizeof(key_index_pair_t));
+      page_guard.template AsMut<PageType>()->data.p_data[pos.path.back().second] = std::make_pair(key, value);
+      page_guard.template AsMut<PageType>()->data.key_count++;
+    } else {
+      // the new key is in the second half
+      memmove(
+          new_page_guard.template AsMut<PageType>()->data.p_data,
+          page_guard.template As<PageType>()->data.p_data + _ActualDataType::kMaxKeyCount -
+              _ActualDataType::kMinNumberOfKeysForLeaf + 1,
+          (pos.path.back().second - (_ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf + 1)) *
+              sizeof(key_index_pair_t));
+      new_page_guard.template AsMut<PageType>()
+          ->data.p_data[pos.path.back().second -
+                        (_ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf + 1)] =
+          std::make_pair(key, value);
+      memmove(new_page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second -
+                  (_ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf + 1) + 1,
+              page_guard.template As<PageType>()->data.p_data + pos.path.back().second,
+              (_ActualDataType::kMaxKeyCount - pos.path.back().second) * sizeof(key_index_pair_t));
+      page_guard.template AsMut<PageType>()->data.key_count++;
+    }
+    if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) {
+      // special case for the root page
+      page_guard.template AsMut<PageType>()->data.page_status &= ~PageStatusType::ROOT;
+      BasicPageGuard new_root_page_guard = bpm->NewPageGuarded(&root_page_id);
+      new_root_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::ROOT;
+      new_root_page_guard.AsMut<PageType>()->data.key_count = 1;
+      new_root_page_guard.AsMut<PageType>()->data.p_data[0] = std::make_pair(
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first,
+          page_guard.PageId());
+      new_root_page_guard.AsMut<PageType>()->data.p_data[1] = std::make_pair(KeyType(), new_page_id);
+      ++siz;
+      fprintf(stderr, "new_page_guard.AsMut<PageType>()->data.key_count = %d\n",
+              (int)new_page_guard.AsMut<PageType>()->data.key_count);
+      return;
+    }
     throw std::runtime_error("Not implemented yet: InsertEntryAt");
-    // TODO
   }
   void RemoveEntryAt(PositionSignType &pos) {
     if (siz == 1) {
@@ -96,9 +159,10 @@ class BPlusTreeIndexer {
     if (page_guard.template As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf ||
         (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) != 0) {
       // case 1: the page has enough keys
-      memmove(page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second,
-              page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
-              (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(value_type));
+      memmove(
+          page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second,
+          page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
+          (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
       page_guard.template AsMut<PageType>()->data.key_count--;
       --siz;
       return;
