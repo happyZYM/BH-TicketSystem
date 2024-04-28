@@ -251,11 +251,13 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
 
 auto BufferPoolManager::FetchPageBasic(page_id_t page_id) -> BasicPageGuard {
   Page *page = FetchPage(page_id);
+  if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
   return {this, page};
 }
 
 auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard {
   Page *page = FetchPage(page_id);
+  if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
   if (page != nullptr) {
     page->RLatch();
   }
@@ -264,6 +266,7 @@ auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard {
 
 auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard {
   Page *page = FetchPage(page_id);
+  if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
   if (page != nullptr) {
     page->WLatch();
   }
@@ -272,5 +275,6 @@ auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard {
 
 auto BufferPoolManager::NewPageGuarded(page_id_t *page_id) -> BasicPageGuard {
   Page *page = NewPage(page_id);
+  if (page == nullptr) throw std::runtime_error("Buffer Pool is full!");
   return {this, page};
 }

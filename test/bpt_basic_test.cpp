@@ -352,7 +352,7 @@ TEST(HarderTest, Split_in_Put_Harder_3) {
           sizeof(std::pair<KeyType, default_numeric_index_t>));
   const std::string db_file_name = "/tmp/bpt8.db";
   std::vector<KeyType> keys;
-  const int ops = 20;
+  const int ops = 1000;
   remove(db_file_name.c_str());
   DiskManager *dm = new DiskManager(db_file_name.c_str());
   BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
@@ -364,6 +364,237 @@ TEST(HarderTest, Split_in_Put_Harder_3) {
   }
   // sort(keys.begin(), keys.end());
   std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      bpt.Put(keys[i - 1], i + 3);
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager(db_file_name.c_str());
+  bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_4) {
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len = 800;
+  typedef bpt_basic_test::FixLengthString<str_len> KeyType;
+  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  const std::string db_file_name = "/tmp/bpt9.db";
+  std::vector<KeyType> keys;
+  const int ops = 1000;
+  remove(db_file_name.c_str());
+  DiskManager *dm = new DiskManager(db_file_name.c_str());
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  for (int i = 1; i <= ops; i++) {
+    KeyType key;
+    for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
+    key.data[str_len - 1] = '\0';
+    keys.push_back(key);
+  }
+  sort(keys.begin(), keys.end());
+  // std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      bpt.Put(keys[i - 1], i + 3);
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager(db_file_name.c_str());
+  bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_5) {
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len = 800;
+  typedef bpt_basic_test::FixLengthString<str_len> KeyType;
+  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  const std::string db_file_name = "/tmp/bpt10.db";
+  std::vector<KeyType> keys;
+  const int ops = 15 + rnd() % 20;
+  remove(db_file_name.c_str());
+  DiskManager *dm = new DiskManager(db_file_name.c_str());
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  for (int i = 1; i <= ops; i++) {
+    KeyType key;
+    for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
+    key.data[str_len - 1] = '\0';
+    keys.push_back(key);
+  }
+  // sort(keys.begin(), keys.end());
+  std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      bpt.Put(keys[i - 1], i + 3);
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager(db_file_name.c_str());
+  bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_6) {
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len = 1000;
+  typedef bpt_basic_test::FixLengthString<str_len> KeyType;
+  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  const std::string db_file_name = "/tmp/bpt11.db";
+  std::vector<KeyType> keys;
+  const int ops = 15 + rnd() % 20;
+  remove(db_file_name.c_str());
+  DiskManager *dm = new DiskManager(db_file_name.c_str());
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  for (int i = 1; i <= ops; i++) {
+    KeyType key;
+    for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
+    key.data[str_len - 1] = '\0';
+    keys.push_back(key);
+  }
+  // sort(keys.begin(), keys.end());
+  std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      bpt.Put(keys[i - 1], i + 3);
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager(db_file_name.c_str());
+  bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_7) {
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len = 2000;
+  typedef bpt_basic_test::FixLengthString<str_len> KeyType;
+  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  const std::string db_file_name = "/tmp/bpt12.db";
+  std::vector<KeyType> keys;
+  const int ops = 15 + rnd() % 20;
+  remove(db_file_name.c_str());
+  DiskManager *dm = new DiskManager(db_file_name.c_str());
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  for (int i = 1; i <= ops; i++) {
+    KeyType key;
+    for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
+    key.data[str_len - 1] = '\0';
+    keys.push_back(key);
+  }
+  // sort(keys.begin(), keys.end());
+  std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      bpt.Put(keys[i - 1], i + 3);
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+  dm = new DiskManager(db_file_name.c_str());
+  bpm = new BufferPoolManager(20, 3, dm);
+  {
+    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+    for (int i = 1; i <= ops; i++) {
+      ASSERT_EQ(bpt.Get(keys[i - 1]), i + 3);
+    }
+  }
+  delete bpm;
+  delete dm;
+}
+
+TEST(HarderTest, Split_in_Put_Harder_8) {
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len = 1300;
+  typedef bpt_basic_test::FixLengthString<str_len> KeyType;
+  fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
+          sizeof(std::pair<KeyType, default_numeric_index_t>));
+  const std::string db_file_name = "/tmp/bpt13.db";
+  std::vector<KeyType> keys;
+  const int ops = 15 + rnd() % 20;
+  remove(db_file_name.c_str());
+  DiskManager *dm = new DiskManager(db_file_name.c_str());
+  BufferPoolManager *bpm = new BufferPoolManager(20, 3, dm);
+  for (int i = 1; i <= ops; i++) {
+    KeyType key;
+    for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
+    key.data[str_len - 1] = '\0';
+    keys.push_back(key);
+  }
+  // sort(keys.begin(), keys.end());
+  std::shuffle(keys.begin(), keys.end(), rnd);
+  for (int i = 1; i <= ops; i++) fprintf(stderr, "key[%d]=%s\n", i - 1, keys[i - 1].data);
   {
     BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
     for (int i = 1; i <= ops; i++) {

@@ -64,6 +64,139 @@ class BPlusTreeIndexer {
       res.is_end = false;
     return res;
   }
+  void InsertFixUpLookPartA(PositionSignType &pos, BasicPageGuard &parent_page_guard, BasicPageGuard &new_page_guard,
+                            BasicPageGuard &page_guard, default_numeric_index_t new_page_id) {
+    pos.path[pos.path.size() - 2].second++;
+    // now check we are able to "insert" (new_page_guard.template
+    // As<PageType>()->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1].first, new_page_id)
+    // at pos
+    if (parent_page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+      // Has enough space, reach end, just insert it
+      // first, manually move the last pointer
+      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+      if (parent_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount - 1) {
+        parent_page_guard.template AsMut<PageType>()->data.p_n =
+            parent_page_guard.template As<PageType>()
+                ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
+                .second;
+      } else {
+        parent_page_guard.template AsMut<PageType>()
+            ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count + 1]
+            .second = parent_page_guard.template As<PageType>()
+                          ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
+                          .second;
+      }
+      // Then, use memmove to move the key_point pairs
+      fprintf(stderr, "parent_page_guard.template As<PageType>()->data.key_count = %d\n",
+              (int)parent_page_guard.template As<PageType>()->data.key_count);
+      if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
+        memmove(parent_page_guard.template AsMut<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second + 1,
+                parent_page_guard.template As<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second,
+                (parent_page_guard.template As<PageType>()->data.key_count - pos.path[pos.path.size() - 2].second) *
+                    sizeof(key_index_pair_t));
+      }
+      // Then Set the key_point pair
+      if (pos.path[pos.path.size() - 2].second < _ActualDataType::kMaxKeyCount) {
+        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second] =
+            std::make_pair(new_page_guard.template As<PageType>()
+                               ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
+                               .first,
+                           new_page_id);
+      } else {
+        // just set p_n
+        parent_page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
+      }
+      parent_page_guard.template AsMut<PageType>()->data.key_count++;
+      return;
+    }
+    // TODO: process and prepare for next round
+    assert((pos.path.size() == 2) ==
+           ((parent_page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) != 0));
+    /**
+     * Step 1: split current page
+     * Step 2: Check if current page is root. If current page is root, create a new root, update and exit
+     * Step 3: Otherwise, update parent page, and continue the loop
+     */
+    key_index_pair_t new_entry_backup =
+        std::make_pair(new_page_guard.template As<PageType>()
+                           ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
+                           .first,
+                       new_page_id);
+    KeyType key_to_update_backup =
+        page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+    InsertFixUpLookPartB(pos, parent_page_guard, new_entry_backup, key_to_update_backup);
+  }
+  void InsertFixUpLookPartB(PositionSignType &pos, BasicPageGuard &page_guard, const key_index_pair_t &new_entry_backup,
+                            const KeyType &key_to_update_backup) {
+    default_numeric_index_t new_page_id;
+    auto new_page_guard = std::move(bpm->NewPageGuarded(&new_page_id));
+    new_page_guard.template AsMut<PageType>()->data.page_status = PageStatusType::INTERNAL;
+    // Now begin spliting. It is expected that the new page has _ActualDataType::kMinNumberOfKeysForLeaf keys
+    if (pos.path[pos.path.size() - 2].second - 1 == _ActualDataType::kMaxKeyCount) {
+      // In this case, first, move the last _ActualDataType::kMinNumberOfKeysForLeaf-1 keys to the new page
+      memmove(new_page_guard.template AsMut<PageType>()->data.p_data,
+              page_guard.template As<PageType>()->data.p_data + _ActualDataType::kMaxKeyCount -
+                  (_ActualDataType::kMinNumberOfKeysForLeaf - 1),
+              (_ActualDataType::kMinNumberOfKeysForLeaf - 1) * sizeof(key_index_pair_t));
+      new_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMinNumberOfKeysForLeaf - 1].second =
+          page_guard.template As<PageType>()->data.p_n;
+      new_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMinNumberOfKeysForLeaf - 1].first =
+          key_to_update_backup;
+      new_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMinNumberOfKeysForLeaf].second =
+          new_entry_backup.second;
+      new_page_guard.template AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
+      page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf - 1;
+    } else {
+      page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+          key_to_update_backup;
+      // now, we need to "insert" the new_entry_backup to position pos.path[pos.path.size() - 2].second
+      new_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMinNumberOfKeysForLeaf].second =
+          page_guard.template As<PageType>()->data.p_n;
+      default_numeric_index_t it_dest = _ActualDataType::kMinNumberOfKeysForLeaf - 1;
+      default_numeric_index_t it_src = _ActualDataType::kMaxKeyCount - 1;
+      bool has_processed = false;
+      for (; it_dest != kInvalidNumericIndex; --it_dest) {
+        if (!has_processed && pos.path[pos.path.size() - 2].second == it_src + 1) {
+          new_page_guard.template AsMut<PageType>()->data.p_data[it_dest] = new_entry_backup;
+          has_processed = true;
+          continue;
+        }
+        new_page_guard.template AsMut<PageType>()->data.p_data[it_dest] =
+            page_guard.template As<PageType>()->data.p_data[it_src];
+        --it_src;
+      }
+      if (pos.path[pos.path.size() - 2].second <=
+          _ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf) {
+        memmove(page_guard.template AsMut<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second + 1,
+                page_guard.template As<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second,
+                ((_ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf) -
+                 pos.path[pos.path.size() - 2].second) *
+                    sizeof(key_index_pair_t));
+        page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second] = new_entry_backup;
+      }
+      new_page_guard.template AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
+      page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf - 1;
+    }
+    fprintf(stderr, "Evicting page %d\n", (int)pos.path.back().first.PageId());
+    fprintf(stderr, "page id of page_guard = %d\n", (int)page_guard.PageId());
+    pos.path.pop_back();
+    fprintf(stderr, "the page id of the res page in pos %d\n", (int)pos.path.back().first.PageId());
+    if (pos.path.size() == 1) {
+      // we have split the root page, update and quit
+      page_guard.template AsMut<PageType>()->data.page_status &= ~PageStatusType::ROOT;
+      BasicPageGuard new_root_page_guard = bpm->NewPageGuarded(&root_page_id);
+      new_root_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::ROOT;
+      new_root_page_guard.AsMut<PageType>()->data.key_count = 1;
+      new_root_page_guard.AsMut<PageType>()->data.p_data[0] = std::make_pair(
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first,
+          page_guard.PageId());
+      new_root_page_guard.AsMut<PageType>()->data.p_data[1] = std::make_pair(KeyType(), new_page_id);
+      return;
+    }
+    auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
+    InsertFixUpLookPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
+  }
   void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value,
                      bool is_fixing_up_recursive = false) {
     fprintf(stderr, "_ActualDataType::kMaxKeyCount = %d\n", (int)_ActualDataType::kMaxKeyCount);
@@ -103,8 +236,9 @@ class BPlusTreeIndexer {
       new_page_guard.AsMut<PageType>()->data.page_status = 0;  // PageStatusType::INTERNAL;
     new_page_guard.AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
     page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf;
-    new_page_guard.AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
-    page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
+    if (!is_fixing_up_recursive)
+      new_page_guard.AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
+    if (!is_fixing_up_recursive) page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
     if (pos.path.back().second <= _ActualDataType::kMaxKeyCount - _ActualDataType::kMinNumberOfKeysForLeaf) {
       // the new key is in the first half
       memmove(new_page_guard.template AsMut<PageType>()->data.p_data,
@@ -160,57 +294,7 @@ class BPlusTreeIndexer {
       is_in_right_skew_path = true;
     }
     if (is_in_right_skew_path) {
-      do {
-        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
-            page_guard.template As<PageType>()
-                ->data.p_data[page_guard.template As<PageType>()->data.key_count - 1]
-                .first;
-        pos.path[pos.path.size() - 2].second++;
-        // now check we are able to "insert" (new_page_guard.template
-        // As<PageType>()->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1].first, new_page_id)
-        // at pos
-        if (parent_page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
-          // Has enough space, reach end, just insert it
-          // first, manually move the last pointer
-          if (parent_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount - 1) {
-            parent_page_guard.template AsMut<PageType>()->data.p_n =
-                parent_page_guard.template As<PageType>()
-                    ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
-                    .second;
-          } else {
-            parent_page_guard.template AsMut<PageType>()
-                ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count + 1]
-                .second = parent_page_guard.template As<PageType>()
-                              ->data.p_data[parent_page_guard.template As<PageType>()->data.key_count]
-                              .second;
-          }
-          // Then, use memmove to move the key_point pairs
-          fprintf(stderr, "parent_page_guard.template As<PageType>()->data.key_count = %d\n",
-                  (int)parent_page_guard.template As<PageType>()->data.key_count);
-          if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
-            memmove(
-                parent_page_guard.template AsMut<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second + 1,
-                parent_page_guard.template As<PageType>()->data.p_data + pos.path[pos.path.size() - 2].second,
-                (parent_page_guard.template As<PageType>()->data.key_count - pos.path[pos.path.size() - 2].second) *
-                    sizeof(key_index_pair_t));
-          }
-          // Then Set the key_point pair
-          if (pos.path[pos.path.size() - 2].second < _ActualDataType::kMaxKeyCount) {
-            parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second] =
-                std::make_pair(new_page_guard.template As<PageType>()
-                                   ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
-                                   .first,
-                               new_page_id);
-          } else {
-            // just set p_n
-            parent_page_guard.template AsMut<PageType>()->data.p_n = new_page_id;
-          }
-          parent_page_guard.template AsMut<PageType>()->data.key_count++;
-          break;
-        }
-        // TODO: process and prepare for next round
-        throw std::runtime_error("Not implemented yet: InsertEntryAt");
-      } while (true);
+      InsertFixUpLookPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
       if (!is_fixing_up_recursive) ++siz;
       return;
     }
