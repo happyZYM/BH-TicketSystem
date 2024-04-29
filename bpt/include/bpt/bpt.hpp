@@ -64,7 +64,7 @@ class BPlusTreeIndexer {
       res.is_end = false;
     return res;
   }
-  void InsertFixUpLookPartA(PositionSignType &pos, BasicPageGuard &parent_page_guard, BasicPageGuard &new_page_guard,
+  void InsertFixUpLoopPartA(PositionSignType &pos, BasicPageGuard &parent_page_guard, BasicPageGuard &new_page_guard,
                             BasicPageGuard &page_guard, default_numeric_index_t new_page_id) {
     pos.path[pos.path.size() - 2].second++;
     // now check we are able to "insert" (new_page_guard.template
@@ -125,9 +125,9 @@ class BPlusTreeIndexer {
                        new_page_id);
     KeyType key_to_update_backup =
         page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
-    InsertFixUpLookPartB(pos, parent_page_guard, new_entry_backup, key_to_update_backup);
+    InsertFixUpLoopPartB(pos, parent_page_guard, new_entry_backup, key_to_update_backup);
   }
-  void InsertFixUpLookPartB(PositionSignType &pos, BasicPageGuard &page_guard, const key_index_pair_t &new_entry_backup,
+  void InsertFixUpLoopPartB(PositionSignType &pos, BasicPageGuard &page_guard, const key_index_pair_t &new_entry_backup,
                             const KeyType &key_to_update_backup) {
     default_numeric_index_t new_page_id;
     auto new_page_guard = std::move(bpm->NewPageGuarded(&new_page_id));
@@ -195,7 +195,7 @@ class BPlusTreeIndexer {
       return;
     }
     auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
-    InsertFixUpLookPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
+    InsertFixUpLoopPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
   }
   void InsertEntryAt(PositionSignType &pos, const KeyType &key, b_plus_tree_value_index_t value,
                      bool is_fixing_up_recursive = false) {
@@ -207,7 +207,6 @@ class BPlusTreeIndexer {
       new_page_guard.AsMut<PageType>()->data.key_count = 1;
       new_page_guard.AsMut<PageType>()->data.p_data[0] = std::make_pair(key, value);
       new_page_guard.AsMut<PageType>()->data.p_n = 0;
-      if (!is_fixing_up_recursive) ++siz;
       return;
     }
     auto &page_guard = pos.path.back().first;
@@ -220,7 +219,6 @@ class BPlusTreeIndexer {
       page_guard.template AsMut<PageType>()->data.key_count++;
       // fprintf(stderr, "page_guard.template As<PageType>()->data.key_count = %d\n",
       // (int)page_guard.template As<PageType>()->data.key_count);
-      if (!is_fixing_up_recursive) ++siz;
       return;
     }
     // In our case, the tree is not too high, so we do not consider borrowing from siblings, we just split the page.
@@ -233,7 +231,7 @@ class BPlusTreeIndexer {
     if (!is_fixing_up_recursive)
       new_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::LEAF;
     else
-      new_page_guard.AsMut<PageType>()->data.page_status = 0;  // PageStatusType::INTERNAL;
+      new_page_guard.AsMut<PageType>()->data.page_status = PageStatusType::INTERNAL;
     new_page_guard.AsMut<PageType>()->data.key_count = _ActualDataType::kMinNumberOfKeysForLeaf;
     page_guard.template AsMut<PageType>()->data.key_count -= _ActualDataType::kMinNumberOfKeysForLeaf;
     if (!is_fixing_up_recursive)
@@ -278,7 +276,6 @@ class BPlusTreeIndexer {
           page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first,
           page_guard.PageId());
       new_root_page_guard.AsMut<PageType>()->data.p_data[1] = std::make_pair(KeyType(), new_page_id);
-      if (!is_fixing_up_recursive) ++siz;
       // fprintf(stderr, "new_page_guard.AsMut<PageType>()->data.key_count = %d\n",
       // (int)new_page_guard.AsMut<PageType>()->data.key_count);
       return;
@@ -286,16 +283,15 @@ class BPlusTreeIndexer {
     assert(pos.path.size() >= 2);
     auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
     bool is_in_right_skew_path = false;
-    if (pos.path[pos.path.size() - 2].second == parent_page_guard.template As<PageType>()->data.key_count) {
-      is_in_right_skew_path = true;
-    }
+    // if (pos.path[pos.path.size() - 2].second == parent_page_guard.template As<PageType>()->data.key_count) {
+    //   is_in_right_skew_path = true;
+    // }
     if (pos.path.size() == 2 || pos.path[pos.path.size() - 3].second ==
                                     pos.path[pos.path.size() - 3].first.template As<PageType>()->data.key_count) {
       is_in_right_skew_path = true;
     }
     if (is_in_right_skew_path) {
-      InsertFixUpLookPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
-      if (!is_fixing_up_recursive) ++siz;
+      InsertFixUpLoopPartA(pos, parent_page_guard, new_page_guard, page_guard, new_page_id);
       return;
     }
     parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
@@ -308,31 +304,255 @@ class BPlusTreeIndexer {
                       ->data.p_data[new_page_guard.template As<PageType>()->data.key_count - 1]
                       .first,
                   new_page_id, true);
-    if (!is_fixing_up_recursive) ++siz;
     return;
   }
-  void RemoveEntryAt(PositionSignType &pos) {
-    if (siz == 1) {
-      // special case for the last entry
-      bpm->DeletePage(root_page_id);
-      root_page_id = 0;
-      --siz;
-      return;
-    }
+  void RemoveEntryInRightSkewPath(PositionSignType &pos) {
     auto &page_guard = pos.path.back().first;
+    bool has_enough_keys = false;
     if (page_guard.template As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf ||
         (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) != 0) {
       // case 1: the page has enough keys
+      has_enough_keys = true;
+    }
+    if (pos.path.back().second == page_guard.template As<PageType>()->data.key_count) {
+      // The "entry" to remove is just a past-the-end pointer
+      page_guard.template AsMut<PageType>()->data.key_count--;
+      return;
+    } else {
+      // The "entry" to remove is a key-val pair
       memmove(
           page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second,
           page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
           (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
       page_guard.template AsMut<PageType>()->data.key_count--;
-      --siz;
       return;
     }
-    throw std::runtime_error("Not implemented yet: RemoveEntryAt");
-    // TODO
+    if (has_enough_keys) {
+      if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
+          page_guard.template As<PageType>()->data.key_count) {
+        // special case for the root page
+        root_page_id = page_guard.template As<PageType>()->data.p_data[0].second;
+        page_id_t page_to_delete = page_guard.PageId();
+        pos.path.clear();  // all page_guards are invalid now
+        bpm->DeletePage(page_to_delete);
+        return;
+      }
+      return;
+    }
+    assert(pos.path.size() >= 2);
+    assert(pos.path[pos.path.size() - 2].second > 0);
+    page_id_t possible_prev_page_id = 0;
+    auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
+    possible_prev_page_id =
+        parent_page_guard.template As<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].second;
+    BasicPageGuard prev_page_guard = std::move(bpm->FetchPageBasic(possible_prev_page_id));
+    if (prev_page_guard.As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf) {
+      // borrow from prev
+      // first, set the past-the-end pointer
+      page_guard.template AsMut<PageType>()
+          ->data.p_data[page_guard.template As<PageType>()->data.key_count + 1]
+          .second =
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second;
+      memmove(page_guard.template AsMut<PageType>()->data.p_data + 1, page_guard.template As<PageType>()->data.p_data,
+              page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+      page_guard.template AsMut<PageType>()->data.p_data[0] =
+          prev_page_guard.template As<PageType>()
+              ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1];
+      page_guard.template AsMut<PageType>()->data.key_count++;
+      prev_page_guard.template AsMut<PageType>()->data.key_count--;
+      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+          prev_page_guard.template As<PageType>()
+              ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
+              .first;
+      return;
+    }
+    // now we have no choice but to merge self into prev
+    memmove(prev_page_guard.template AsMut<PageType>()->data.p_data +
+                prev_page_guard.template As<PageType>()->data.key_count,
+            page_guard.template As<PageType>()->data.p_data,
+            page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+    prev_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
+    prev_page_guard.template AsMut<PageType>()
+        ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count]
+        .second =
+        page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second;
+    parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+        prev_page_guard.template As<PageType>()
+            ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
+            .first;
+    pos.path.pop_back();  // page_guard is no longer valid
+    RemoveEntryInRightSkewPath(pos);
+    return;
+  }
+  void RemoveEntryAt(PositionSignType &pos, bool is_fixing_up_recursive = false) {
+    if (siz == 1) {
+      // special case for the last entry
+      bpm->DeletePage(root_page_id);
+      root_page_id = 0;
+      return;
+    }
+    auto &page_guard = pos.path.back().first;
+    bool has_enough_keys = false;
+    if (page_guard.template As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf ||
+        (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT) != 0) {
+      // case 1: the page has enough keys
+      has_enough_keys = true;
+    }
+    memmove(
+        page_guard.template AsMut<PageType>()->data.p_data + pos.path.back().second,
+        page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
+        (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
+    page_guard.template AsMut<PageType>()->data.key_count--;
+    if (has_enough_keys) {
+      if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
+          page_guard.template As<PageType>()->data.key_count) {
+        // special case for the root page
+        root_page_id = page_guard.template As<PageType>()->data.p_data[0].second;
+        page_id_t page_to_delete = page_guard.PageId();
+        pos.path.clear();  // all page_guards are invalid now
+        bpm->DeletePage(page_to_delete);
+        return;
+      }
+      return;
+    }
+    assert(pos.path.size() >= 2);
+    // First, check if we can borrow from siblings. If we can, we just borrow from siblings. Otherwise, we just merge.
+    page_id_t possible_prev_page_id = 0, possible_next_page_id = 0;
+    auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
+    bool is_in_right_skew_path = false;
+    // if (pos.path[pos.path.size() - 2].second == parent_page_guard.template As<PageType>()->data.key_count) {
+    //   is_in_right_skew_path = true;
+    // }
+    if (pos.path.size() == 2 || pos.path[pos.path.size() - 3].second ==
+                                    pos.path[pos.path.size() - 3].first.template As<PageType>()->data.key_count) {
+      is_in_right_skew_path = true;
+    }
+    if (is_in_right_skew_path) {
+      if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
+        if (pos.path[pos.path.size() - 2].second + 1 < _ActualDataType::kMaxKeyCount)
+          possible_next_page_id =
+              parent_page_guard.template As<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second + 1].second;
+        else
+          possible_next_page_id = parent_page_guard.template As<PageType>()->data.p_n;
+      }
+    } else {
+      if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count - 1)
+        possible_next_page_id =
+            parent_page_guard.template As<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second + 1].second;
+    }
+    if (pos.path[pos.path.size() - 2].second > 0)
+      possible_prev_page_id =
+          parent_page_guard.template As<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].second;
+    if (possible_prev_page_id != 0) {
+      BasicPageGuard prev_page_guard = std::move(bpm->FetchPageBasic(possible_prev_page_id));
+      if (prev_page_guard.As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf) {
+        // borrow from prev
+        memmove(page_guard.template AsMut<PageType>()->data.p_data + 1, page_guard.template As<PageType>()->data.p_data,
+                page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+        page_guard.template AsMut<PageType>()->data.p_data[0] =
+            prev_page_guard.template As<PageType>()
+                ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1];
+        page_guard.template AsMut<PageType>()->data.key_count++;
+        prev_page_guard.template AsMut<PageType>()->data.key_count--;
+        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+            prev_page_guard.template As<PageType>()
+                ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
+                .first;
+        return;
+      }
+    }
+    if (possible_next_page_id != 0) {
+      BasicPageGuard next_page_guard = std::move(bpm->FetchPageBasic(possible_next_page_id));
+      if (next_page_guard.As<PageType>()->data.key_count > _ActualDataType::kMinNumberOfKeysForLeaf) {
+        // borrow from next
+        page_guard.template AsMut<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count] =
+            next_page_guard.template As<PageType>()->data.p_data[0];
+        page_guard.template AsMut<PageType>()->data.key_count++;
+        next_page_guard.template AsMut<PageType>()->data.key_count--;
+        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+            page_guard.template As<PageType>()
+                ->data.p_data[page_guard.template As<PageType>()->data.key_count - 1]
+                .first;
+        memmove(next_page_guard.template AsMut<PageType>()->data.p_data,
+                next_page_guard.template As<PageType>()->data.p_data + 1,
+                next_page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+        if (is_fixing_up_recursive &&
+            pos.path[pos.path.size() - 2].second + 1 == parent_page_guard.template As<PageType>()->data.key_count) {
+          if (next_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount - 1) {
+            // special process for meaningful p_n
+            next_page_guard.template AsMut<PageType>()
+                ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
+                .second = next_page_guard.template As<PageType>()->data.p_n;
+          } else {
+            // special process for past-the-end p_i
+            next_page_guard.template AsMut<PageType>()
+                ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
+                .second = next_page_guard.template As<PageType>()
+                              ->data.p_data[next_page_guard.template As<PageType>()->data.key_count + 1]
+                              .second;
+          }
+        }
+        return;
+      }
+    }
+    if (possible_prev_page_id != 0) {
+      // merge self into prev
+      BasicPageGuard prev_page_guard = std::move(bpm->FetchPageBasic(possible_prev_page_id));
+      prev_page_guard.template AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
+      memmove(prev_page_guard.template AsMut<PageType>()->data.p_data +
+                  prev_page_guard.template As<PageType>()->data.key_count,
+              page_guard.template As<PageType>()->data.p_data,
+              page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+      prev_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
+      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
+          prev_page_guard.template As<PageType>()
+              ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
+              .first;
+      page_id_t current_page_id = page_guard.PageId();
+      pos.path.pop_back();  // page_guard is no longer valid
+      if (!is_in_right_skew_path) {
+        bpm->DeletePage(current_page_id);
+        // we need to update the parent page
+        RemoveEntryAt(pos, true);
+        return;
+      }
+      RemoveEntryInRightSkewPath(pos);
+      return;
+    }
+    if (possible_next_page_id != 0) {
+      // merge self into next
+      assert(possible_prev_page_id == 0);
+      BasicPageGuard next_page_guard = std::move(bpm->FetchPageBasic(possible_next_page_id));
+      if (is_fixing_up_recursive &&
+          pos.path[pos.path.size() - 2].second + 1 == parent_page_guard.template As<PageType>()->data.key_count) {
+        // the next page has past-the-end pointer
+        if (next_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount) {
+          next_page_guard.template AsMut<PageType>()->data.p_n =
+              next_page_guard.template As<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount - 1].second;
+        } else {
+          next_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount].second =
+              next_page_guard.template As<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount - 1].second;
+        }
+      }
+      memmove(
+          next_page_guard.template AsMut<PageType>()->data.p_data + page_guard.template As<PageType>()->data.key_count,
+          next_page_guard.template As<PageType>()->data.p_data,
+          next_page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+      memmove(next_page_guard.template AsMut<PageType>()->data.p_data, page_guard.template As<PageType>()->data.p_data,
+              page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+      next_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
+      page_id_t current_page_id = page_guard.PageId();
+      pos.path.pop_back();  // page_guard is no longer valid
+      if (!is_in_right_skew_path) {
+        bpm->DeletePage(current_page_id);
+        // we need to update the parent page
+        RemoveEntryAt(pos, true);
+        return;
+      }
+      RemoveEntryInRightSkewPath(pos);
+      return;
+    }
+    throw std::runtime_error("No sibling found!");
   }
 
  public:
@@ -493,6 +713,7 @@ class BPlusTreeIndexer {
       return false;
     }
     InsertEntryAt(pos, key, value);
+    ++siz;
     return true;
   }
   bool Remove(const KeyType &key) {  // Finish Design
@@ -504,6 +725,7 @@ class BPlusTreeIndexer {
     if (key_cmp(key, pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].first))
       return false;
     RemoveEntryAt(pos);
+    --siz;
     return true;
   }
   size_t Size() { return siz; }  // Finish Design
