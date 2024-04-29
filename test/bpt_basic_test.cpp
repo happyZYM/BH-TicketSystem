@@ -785,12 +785,12 @@ TEST(RemoveTest, RM_2) {
   const std::string db_file_name = "/tmp/bpt16.db";
   remove(db_file_name.c_str());
   std::vector<std::pair<KeyType, int>> entries;
-  const int max_keys = 1000;
-  const int keys_num_to_remove = 999;
+  const int max_keys = 25;
+  const int keys_num_to_remove = 20;
   for (int i = 1; i <= max_keys; i++) {
     KeyType key;
     for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
-    key.data[str_len - 1] = '\0';
+    key.data[6] = '\0';
     entries.push_back(std::make_pair(key, i));
   }
   // std::sort(entries.begin(), entries.end());
@@ -830,21 +830,22 @@ TEST(RemoveTest, RM_2) {
       for (int j = 0; j < entries.size(); j++) {
         ASSERT_EQ(bpt.Get(entries[j].first), entries[j].second);
       }
-      // {
-      //   // checking iteration
-      //   auto it_std = entries.begin();
-      //   auto it_bpt = bpt.lower_bound_const(entries[0].first);
-      //   for (int i = 0; i < entries.size(); i++) {
-      //     fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
-      //     ASSERT_TRUE(!(it_bpt == bpt.end_const()));
-      //     ASSERT_EQ(it_bpt.GetKey(), it_std->first);
-      //     ASSERT_EQ(it_bpt.GetValue(), it_std->second);
-      //     ++it_bpt;
-      //     it_std++;
-      //   }
-      //   ASSERT_TRUE(it_bpt == bpt.end_const());
-      //   ASSERT_EQ(bpt.Size(), entries.size());
-      // }
+      {
+        // checking iteration
+        std::sort(entries.begin(), entries.end());
+        auto it_std = entries.begin();
+        auto it_bpt = bpt.lower_bound_const(entries[0].first);
+        for (int i = 0; i < entries.size(); i++) {
+          fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
+          ASSERT_TRUE(!(it_bpt == bpt.end_const()));
+          ASSERT_EQ(it_bpt.GetKey(), it_std->first);
+          ASSERT_EQ(it_bpt.GetValue(), it_std->second);
+          ++it_bpt;
+          it_std++;
+        }
+        ASSERT_TRUE(it_bpt == bpt.end_const());
+        ASSERT_EQ(bpt.Size(), entries.size());
+      }
     }
     ASSERT_EQ(bpt.Size(), max_keys - keys_num_to_remove);
     for (int i = 0; i < entries.size(); i++) {

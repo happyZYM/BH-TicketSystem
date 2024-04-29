@@ -546,7 +546,7 @@ class BPlusTreeIndexer {
       return;
     }
     if (possible_next_page_id != 0) {
-      // merge self into next
+      // merge next into self
       assert(possible_prev_page_id == 0);
       BasicPageGuard next_page_guard = std::move(bpm->FetchPageBasic(possible_next_page_id));
       if (is_fixing_up_recursive &&
@@ -555,27 +555,31 @@ class BPlusTreeIndexer {
         size_t intended_dest = next_page_guard.template As<PageType>()->data.key_count +
                                page_guard.template As<PageType>()->data.key_count;
         if (intended_dest == _ActualDataType::kMaxKeyCount) {
-          next_page_guard.template AsMut<PageType>()->data.p_n =
+          page_guard.template AsMut<PageType>()->data.p_n =
               next_page_guard.template As<PageType>()
                   ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
                   .second;
         } else {
-          next_page_guard.template AsMut<PageType>()->data.p_data[intended_dest].second =
+          page_guard.template AsMut<PageType>()->data.p_data[intended_dest].second =
               next_page_guard.template As<PageType>()
                   ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
                   .second;
         }
       }
-      memmove(
-          next_page_guard.template AsMut<PageType>()->data.p_data + page_guard.template As<PageType>()->data.key_count,
-          next_page_guard.template As<PageType>()->data.p_data,
-          next_page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
-      memmove(next_page_guard.template AsMut<PageType>()->data.p_data, page_guard.template As<PageType>()->data.p_data,
-              page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
-      next_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
-      page_id_t current_page_id = page_guard.PageId();
+      if (!is_fixing_up_recursive) {
+        // update the p_n
+        page_guard.template AsMut<PageType>()->data.p_n = next_page_guard.template As<PageType>()->data.p_n;
+      }
+      memmove(page_guard.template AsMut<PageType>()->data.p_data + page_guard.template As<PageType>()->data.key_count,
+              next_page_guard.template As<PageType>()->data.p_data,
+              next_page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
+      page_guard.template AsMut<PageType>()->data.key_count += next_page_guard.template As<PageType>()->data.key_count;
+      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+      page_id_t page_id_to_delete = next_page_guard.PageId();
       pos.path.pop_back();  // page_guard is no longer valid
-      bpm->DeletePage(current_page_id);
+      pos.path.back().second++;
+      bpm->DeletePage(page_id_to_delete);
       if (!is_in_right_skew_path) {
         // we need to update the parent page
         RemoveEntryAt(pos, true);
