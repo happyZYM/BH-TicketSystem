@@ -785,12 +785,12 @@ TEST(RemoveTest, RM_2) {
   const std::string db_file_name = "/tmp/bpt16.db";
   remove(db_file_name.c_str());
   std::vector<std::pair<KeyType, int>> entries;
-  const int max_keys = 50;
-  const int keys_num_to_remove = 25;
+  const int max_keys = 1000;
+  const int keys_num_to_remove = 999;
   for (int i = 1; i <= max_keys; i++) {
     KeyType key;
     for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
-    key.data[8] = '\0';
+    key.data[str_len - 1] = '\0';
     entries.push_back(std::make_pair(key, i));
   }
   // std::sort(entries.begin(), entries.end());
@@ -827,6 +827,9 @@ TEST(RemoveTest, RM_2) {
       bpt.Remove(entries[id].first);
       entries.erase(entries.begin() + id);
       ASSERT_EQ(bpt.Size(), entries.size());
+      for (int j = 0; j < entries.size(); j++) {
+        ASSERT_EQ(bpt.Get(entries[j].first), entries[j].second);
+      }
       // {
       //   // checking iteration
       //   auto it_std = entries.begin();
