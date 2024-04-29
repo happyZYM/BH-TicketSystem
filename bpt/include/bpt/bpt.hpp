@@ -317,7 +317,6 @@ class BPlusTreeIndexer {
     if (pos.path.back().second == page_guard.template As<PageType>()->data.key_count) {
       // The "entry" to remove is just a past-the-end pointer
       page_guard.template AsMut<PageType>()->data.key_count--;
-      return;
     } else {
       // The "entry" to remove is a key-val pair
       memmove(
@@ -325,13 +324,23 @@ class BPlusTreeIndexer {
           page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
           (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
       page_guard.template AsMut<PageType>()->data.key_count--;
-      return;
+      if (page_guard.template AsMut<PageType>()->data.key_count + 1 < _ActualDataType::kMaxKeyCount) {
+        page_guard.template AsMut<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second =
+            page_guard.template As<PageType>()
+                ->data.p_data[page_guard.template As<PageType>()->data.key_count + 1]
+                .second;
+      } else {
+        page_guard.template AsMut<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second =
+            page_guard.template As<PageType>()->data.p_n;
+      }
     }
     if (has_enough_keys) {
       if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
-          page_guard.template As<PageType>()->data.key_count) {
+          page_guard.template As<PageType>()->data.key_count == 0) {
         // special case for the root page
         root_page_id = page_guard.template As<PageType>()->data.p_data[0].second;
+        BasicPageGuard root_page_guard = bpm->FetchPageBasic(root_page_id);
+        root_page_guard.template AsMut<PageType>()->data.page_status |= PageStatusType::ROOT;
         page_id_t page_to_delete = page_guard.PageId();
         pos.path.clear();  // all page_guards are invalid now
         bpm->DeletePage(page_to_delete);
@@ -372,10 +381,25 @@ class BPlusTreeIndexer {
             page_guard.template As<PageType>()->data.p_data,
             page_guard.template As<PageType>()->data.key_count * sizeof(key_index_pair_t));
     prev_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
-    prev_page_guard.template AsMut<PageType>()
-        ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count]
-        .second =
-        page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second;
+    if (page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+      if (prev_page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+        prev_page_guard.template AsMut<PageType>()
+            ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count]
+            .second =
+            page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second;
+      } else {
+        prev_page_guard.template AsMut<PageType>()->data.p_n =
+            page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count].second;
+      }
+    } else {
+      if (prev_page_guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+        prev_page_guard.template AsMut<PageType>()
+            ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count]
+            .second = page_guard.template As<PageType>()->data.p_n;
+      } else {
+        prev_page_guard.template AsMut<PageType>()->data.p_n = page_guard.template As<PageType>()->data.p_n;
+      }
+    }
     parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second - 1].first =
         prev_page_guard.template As<PageType>()
             ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
@@ -405,9 +429,11 @@ class BPlusTreeIndexer {
     page_guard.template AsMut<PageType>()->data.key_count--;
     if (has_enough_keys) {
       if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
-          page_guard.template As<PageType>()->data.key_count) {
+          page_guard.template As<PageType>()->data.key_count == 0) {
         // special case for the root page
         root_page_id = page_guard.template As<PageType>()->data.p_data[0].second;
+        BasicPageGuard root_page_guard = bpm->FetchPageBasic(root_page_id);
+        root_page_guard.template AsMut<PageType>()->data.page_status |= PageStatusType::ROOT;
         page_id_t page_to_delete = page_guard.PageId();
         pos.path.clear();  // all page_guards are invalid now
         bpm->DeletePage(page_to_delete);
@@ -510,8 +536,8 @@ class BPlusTreeIndexer {
               .first;
       page_id_t current_page_id = page_guard.PageId();
       pos.path.pop_back();  // page_guard is no longer valid
+      bpm->DeletePage(current_page_id);
       if (!is_in_right_skew_path) {
-        bpm->DeletePage(current_page_id);
         // we need to update the parent page
         RemoveEntryAt(pos, true);
         return;
@@ -526,12 +552,18 @@ class BPlusTreeIndexer {
       if (is_fixing_up_recursive &&
           pos.path[pos.path.size() - 2].second + 1 == parent_page_guard.template As<PageType>()->data.key_count) {
         // the next page has past-the-end pointer
-        if (next_page_guard.template As<PageType>()->data.key_count == _ActualDataType::kMaxKeyCount) {
+        size_t intended_dest = next_page_guard.template As<PageType>()->data.key_count +
+                               page_guard.template As<PageType>()->data.key_count;
+        if (intended_dest == _ActualDataType::kMaxKeyCount) {
           next_page_guard.template AsMut<PageType>()->data.p_n =
-              next_page_guard.template As<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount - 1].second;
+              next_page_guard.template As<PageType>()
+                  ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
+                  .second;
         } else {
-          next_page_guard.template AsMut<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount].second =
-              next_page_guard.template As<PageType>()->data.p_data[_ActualDataType::kMaxKeyCount - 1].second;
+          next_page_guard.template AsMut<PageType>()->data.p_data[intended_dest].second =
+              next_page_guard.template As<PageType>()
+                  ->data.p_data[next_page_guard.template As<PageType>()->data.key_count]
+                  .second;
         }
       }
       memmove(
@@ -543,8 +575,8 @@ class BPlusTreeIndexer {
       next_page_guard.template AsMut<PageType>()->data.key_count += page_guard.template As<PageType>()->data.key_count;
       page_id_t current_page_id = page_guard.PageId();
       pos.path.pop_back();  // page_guard is no longer valid
+      bpm->DeletePage(current_page_id);
       if (!is_in_right_skew_path) {
-        bpm->DeletePage(current_page_id);
         // we need to update the parent page
         RemoveEntryAt(pos, true);
         return;
