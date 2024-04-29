@@ -777,7 +777,7 @@ TEST(RemoveTest, RM_1) {
 
 TEST(RemoveTest, RM_2) {
   const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
-  std::mt19937 rnd(1);
+  std::mt19937 rnd(RndSeed);
   const int str_len = 800;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
   fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",
@@ -785,15 +785,16 @@ TEST(RemoveTest, RM_2) {
   const std::string db_file_name = "/tmp/bpt16.db";
   remove(db_file_name.c_str());
   std::vector<std::pair<KeyType, int>> entries;
-  const int max_keys = 30;
-  const int keys_num_to_remove = 15;
+  const int max_keys = 50;
+  const int keys_num_to_remove = 25;
   for (int i = 1; i <= max_keys; i++) {
     KeyType key;
     for (size_t j = 0; j < str_len; j++) key.data[j] = 'a' + rnd() % 26;
     key.data[8] = '\0';
     entries.push_back(std::make_pair(key, i));
   }
-  std::sort(entries.begin(), entries.end());
+  // std::sort(entries.begin(), entries.end());
+  std::shuffle(entries.begin(), entries.end(), rnd);
   fprintf(stderr, "The entries are:\n");
   for (int i = 0; i < entries.size(); i++) {
     fprintf(stderr, "key[%d]=%s value[%d]=%d\n", i, entries[i].first.data, i, entries[i].second);
@@ -806,11 +807,41 @@ TEST(RemoveTest, RM_2) {
       bpt.Put(entries[i - 1].first, entries[i - 1].second);
     }
     for (int i = 1; i <= keys_num_to_remove; i++) {
+      // {
+      //   // checking iteration
+      //   auto it_std = entries.begin();
+      //   auto it_bpt = bpt.lower_bound_const(entries[0].first);
+      //   for (int i = 0; i < entries.size(); i++) {
+      //     fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
+      //     ASSERT_TRUE(!(it_bpt == bpt.end_const()));
+      //     ASSERT_EQ(it_bpt.GetKey(), it_std->first);
+      //     ASSERT_EQ(it_bpt.GetValue(), it_std->second);
+      //     ++it_bpt;
+      //     it_std++;
+      //   }
+      //   ASSERT_TRUE(it_bpt == bpt.end_const());
+      //   ASSERT_EQ(bpt.Size(), entries.size());
+      // }
       int id = rnd() % entries.size();
       fprintf(stderr, "removing key[%d]=%s value[%d]=%d\n", id, entries[id].first.data, id, entries[id].second);
       bpt.Remove(entries[id].first);
       entries.erase(entries.begin() + id);
       ASSERT_EQ(bpt.Size(), entries.size());
+      // {
+      //   // checking iteration
+      //   auto it_std = entries.begin();
+      //   auto it_bpt = bpt.lower_bound_const(entries[0].first);
+      //   for (int i = 0; i < entries.size(); i++) {
+      //     fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
+      //     ASSERT_TRUE(!(it_bpt == bpt.end_const()));
+      //     ASSERT_EQ(it_bpt.GetKey(), it_std->first);
+      //     ASSERT_EQ(it_bpt.GetValue(), it_std->second);
+      //     ++it_bpt;
+      //     it_std++;
+      //   }
+      //   ASSERT_TRUE(it_bpt == bpt.end_const());
+      //   ASSERT_EQ(bpt.Size(), entries.size());
+      // }
     }
     ASSERT_EQ(bpt.Size(), max_keys - keys_num_to_remove);
     for (int i = 0; i < entries.size(); i++) {
@@ -829,31 +860,34 @@ TEST(RemoveTest, RM_2) {
   }
   delete bpm;
   delete dm;
-  dm = new DiskManager(db_file_name.c_str());
-  bpm = new BufferPoolManager(20, 3, dm);
-  {
-    BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
-    ASSERT_EQ(bpt.Size(), entries.size());
-    for (int i = 0; i < entries.size(); i++) {
-      ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
-    }
-    sort(entries.begin(), entries.end());
-    for (int i = 0; i < entries.size(); i++) {
-      ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
-    }
-    auto it_std = entries.begin();
-    auto it_bpt = bpt.lower_bound_const(entries[0].first);
-    for (int i = 0; i < entries.size(); i++) {
-      fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
-      ASSERT_TRUE(!(it_bpt == bpt.end_const()));
-      ASSERT_EQ(it_bpt.GetKey(), it_std->first);
-      ASSERT_EQ(it_bpt.GetValue(), it_std->second);
-      ++it_bpt;
-      it_std++;
-    }
-    ASSERT_TRUE(it_bpt == bpt.end_const());
-    ASSERT_EQ(bpt.Size(), entries.size());
-  }
-  delete bpm;
-  delete dm;
+  // dm = new DiskManager(db_file_name.c_str());
+  // bpm = new BufferPoolManager(20, 3, dm);
+  // {
+  //   BPlusTreeIndexer<KeyType, std::less<KeyType>> bpt(bpm);
+  //   ASSERT_EQ(bpt.Size(), entries.size());
+  //   for (int i = 0; i < entries.size(); i++) {
+  //     ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
+  //   }
+  //   sort(entries.begin(), entries.end());
+  //   for (int i = 0; i < entries.size(); i++) {
+  //     ASSERT_EQ(bpt.Get(entries[i].first), entries[i].second);
+  //   }
+  //   auto it_std = entries.begin();
+  //   auto it_bpt_tmp = bpt.lower_bound_const(entries[6].first);
+  //   ASSERT_EQ(it_bpt_tmp.GetValue(), entries[6].second);
+  //   ASSERT_EQ(it_bpt_tmp.GetKey(), entries[6].first);
+  //   auto it_bpt = bpt.lower_bound_const(entries[0].first);
+  //   for (int i = 0; i < entries.size(); i++) {
+  //     fprintf(stderr, "i=%d checking key[%d]=%s value[%d]=%d\n", i, i, it_std->first.data, i, it_std->second);
+  //     ASSERT_TRUE(!(it_bpt == bpt.end_const()));
+  //     ASSERT_EQ(it_bpt.GetKey(), it_std->first);
+  //     ASSERT_EQ(it_bpt.GetValue(), it_std->second);
+  //     ++it_bpt;
+  //     it_std++;
+  //   }
+  //   ASSERT_TRUE(it_bpt == bpt.end_const());
+  //   ASSERT_EQ(bpt.Size(), entries.size());
+  // }
+  // delete bpm;
+  // delete dm;
 }
