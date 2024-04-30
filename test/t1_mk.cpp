@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
   fprintf(fout, "Seed = %u\n", RndSeed);
   fclose(fout);
   // ======================================
-  int n = 100000;
-  int total_keys = 30000;
+  int n = 300000;
+  int total_keys = 100000;
   set<string> keys_set;
   for (int i = 0; i < total_keys; i++) {
     string key = "#" + to_string(rnd_less(1000000)) + "#";

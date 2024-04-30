@@ -512,6 +512,11 @@ class BPlusTreeIndexer {
             prev_page_guard.template As<PageType>()
                 ->data.p_data[prev_page_guard.template As<PageType>()->data.key_count - 1]
                 .first;
+        if (need_update) {
+          // now we need to check if we have to update the right bound till the root
+          pos.path.pop_back();
+          TryUpdateTillRoot(pos);
+        }
         return;
       }
     }
@@ -546,6 +551,9 @@ class BPlusTreeIndexer {
                               .second;
           }
         }
+        // now we need to check if we have to update the right bound till the root
+        pos.path.pop_back();
+        TryUpdateTillRoot(pos);
         return;
       }
     }

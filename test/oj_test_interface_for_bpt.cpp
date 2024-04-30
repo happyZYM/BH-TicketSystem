@@ -40,13 +40,17 @@ int main() {
   {
     BPlusTreeIndexer<ValType, std::less<ValType>> bpt(buffer_pool_manager);
     int n;
+    // freopen("/workspaces/BH-TicketSystem/build/pro.in", "r", stdin);
+    // freopen("/workspaces/BH-TicketSystem/build/pro.out", "w", stdout);
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     std::cout.tie(nullptr);
     std::string op, index;
     int val;
     std::cin >> n;
+    int opt_cnt = 0;
     while (n-- > 0) {
+      ++opt_cnt;
       std::cin >> op;
       if (op[0] == 'i') {
         std::cin >> index >> val;
@@ -73,6 +77,9 @@ int main() {
         std::cout << '\n';
       } else
         throw std::runtime_error("Invalid operation");
+      // if (opt_cnt >= 133768) {
+      //   bpt.CheckIndex();
+      // }
     }
   }
   delete buffer_pool_manager;
