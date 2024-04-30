@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
   fprintf(fout, "Seed = %u\n", RndSeed);
   fclose(fout);
   // ======================================
-  int n = 1000;
-  int total_keys = 300;
+  int n = 100000;
+  int total_keys = 30000;
   set<string> keys_set;
   for (int i = 0; i < total_keys; i++) {
     string key = "#" + to_string(rnd_less(1000000)) + "#";
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   cout << n << endl;
   for (int i = 0; i < n; i++) {
     int tmp = rnd() % 10;
-    if (tmp <= 4) {
+    if (tmp <= 3) {
       string key = keys_vec[rnd_less(keys_vec.size())];
       int val = rnd_less(1000000);
       cout << "insert " << key << " " << val << "\n";
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     } else if (tmp <= 6) {
       string key = keys_vec[rnd_less(keys_vec.size())];
       int val = rnd_less(1000000);
-      if (rnd() % 2 == 0 && mp[key].size() > 0) {
+      if (rnd() % 4 > 0 && mp[key].size() > 0) {
         // 选择一个有意义的删除项
         val = mp[key][rnd_less(mp[key].size())];
       }

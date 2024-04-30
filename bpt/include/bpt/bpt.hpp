@@ -410,6 +410,17 @@ class BPlusTreeIndexer {
     RemoveEntryInRightSkewPath(pos);
     return;
   }
+  void TryUpdateTillRoot(PositionSignType &pos) {
+    if (pos.path.size() < 2) return;
+    BasicPageGuard &page_guard = pos.path.back().first;
+    if (pos.path.back().second != page_guard.template As<PageType>()->data.key_count - 1) return;
+    BasicPageGuard &parent_page_guard = pos.path[pos.path.size() - 2].first;
+    if (pos.path[pos.path.size() - 2].second >= parent_page_guard.template As<PageType>()->data.key_count) return;
+    parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+        page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+    pos.path.pop_back();
+    TryUpdateTillRoot(pos);
+  }
   void RemoveEntryAt(PositionSignType &pos, bool is_fixing_up_recursive = false) {
     if (siz == 1) {
       // special case for the last entry
@@ -429,10 +440,16 @@ class BPlusTreeIndexer {
         page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
         (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
     page_guard.template AsMut<PageType>()->data.key_count--;
+    bool need_update = false;
     if (pos.path.size() >= 2 && page_guard.template AsMut<PageType>()->data.key_count == pos.path.back().second) {
       auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
-      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
-          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+      if (pos.path[pos.path.size() - 2].second < parent_page_guard.template As<PageType>()->data.key_count) {
+        parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+            page_guard.template As<PageType>()
+                ->data.p_data[page_guard.template As<PageType>()->data.key_count - 1]
+                .first;
+        need_update = true;
+      }
     }
     if (has_enough_keys) {
       if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
@@ -444,7 +461,11 @@ class BPlusTreeIndexer {
         page_id_t page_to_delete = page_guard.PageId();
         pos.path.clear();  // all page_guards are invalid now
         bpm->DeletePage(page_to_delete);
-        return;
+      }
+      if (need_update) {
+        // now we need to check if we have to update the right bound till the root
+        pos.path.pop_back();
+        TryUpdateTillRoot(pos);
       }
       return;
     }
