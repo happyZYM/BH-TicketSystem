@@ -777,7 +777,7 @@ TEST(RemoveTest, RM_1) {
 
 TEST(RemoveTest, RM_2) {
   const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
-  std::mt19937 rnd(1);
+  std::mt19937 rnd(RndSeed);
   const int str_len = 800;
   typedef bpt_basic_test::FixLengthString<str_len> KeyType;
   fprintf(stderr, "sizeof(std::pair<KeyType, default_numeric_index_t>)=%lu\n",

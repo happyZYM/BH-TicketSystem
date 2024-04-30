@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <queue>
 #include <shared_mutex>
 #include <vector>
 #include "bpt/bpt_page.hpp"
@@ -36,6 +37,7 @@ class BPlusTreeIndexer {
     static auto comparer_for_key_index_pair = [](const key_index_pair_t &a, const KeyType &b) {
       return key_cmp(a.first, b);
     };
+    // fprintf(stderr, "current page has %u keys\n", current_page_guard.As<PageType>()->data.key_count);
     in_page_key_count_t nxt = std::lower_bound(current_page_guard.As<PageType>()->data.p_data,
                                                current_page_guard.As<PageType>()->data.p_data +
                                                    current_page_guard.As<PageType>()->data.key_count,
@@ -427,6 +429,11 @@ class BPlusTreeIndexer {
         page_guard.template As<PageType>()->data.p_data + pos.path.back().second + 1,
         (page_guard.template As<PageType>()->data.key_count - pos.path.back().second - 1) * sizeof(key_index_pair_t));
     page_guard.template AsMut<PageType>()->data.key_count--;
+    if (pos.path.size() >= 2 && page_guard.template AsMut<PageType>()->data.key_count == pos.path.back().second) {
+      auto &parent_page_guard = pos.path[pos.path.size() - 2].first;
+      parent_page_guard.template AsMut<PageType>()->data.p_data[pos.path[pos.path.size() - 2].second].first =
+          page_guard.template As<PageType>()->data.p_data[page_guard.template As<PageType>()->data.key_count - 1].first;
+    }
     if (has_enough_keys) {
       if (page_guard.template As<PageType>()->data.page_status & PageStatusType::ROOT &&
           page_guard.template As<PageType>()->data.key_count == 0) {
@@ -679,6 +686,36 @@ class BPlusTreeIndexer {
       return *this;
     }
   };
+  // void DfsCheckIndex(page_id_t cur, KeyType right_bound, bool check_right_bound) {
+  //   BasicPageGuard guard = bpm->FetchPageBasic(cur);
+  //   if (check_right_bound) {
+  //     if (guard.template As<PageType>()->data.p_data[guard.template As<PageType>()->data.key_count - 1].first !=
+  //         right_bound) {
+  //       throw std::runtime_error("Index is not sorted!");
+  //     }
+  //   }
+  //   if (guard.template As<PageType>()->data.page_status & PageStatusType::LEAF) {
+  //     return;
+  //   }
+  //   for (int i = 0; i < guard.template As<PageType>()->data.key_count; i++) {
+  //     DfsCheckIndex(guard.template As<PageType>()->data.p_data[i].second,
+  //                   guard.template As<PageType>()->data.p_data[i].first, true);
+  //   }
+  //   if (!check_right_bound) {
+  //     int past_the_end_pointer;
+  //     if (guard.template As<PageType>()->data.key_count < _ActualDataType::kMaxKeyCount) {
+  //       past_the_end_pointer =
+  //           guard.template As<PageType>()->data.p_data[guard.template As<PageType>()->data.key_count].second;
+  //     } else {
+  //       past_the_end_pointer = guard.template As<PageType>()->data.p_n;
+  //     }
+  //     DfsCheckIndex(past_the_end_pointer, KeyType(), false);
+  //   }
+  // }
+  // void CheckIndex() {
+  //   if (siz == 0) return;
+  //   DfsCheckIndex(root_page_id, KeyType(), false);
+  // }
   BPlusTreeIndexer() = delete;
   BPlusTreeIndexer(const BPlusTreeIndexer &) = delete;
   BPlusTreeIndexer(BPlusTreeIndexer &&) = delete;

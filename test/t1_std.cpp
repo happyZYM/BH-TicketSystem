@@ -1,4 +1,4 @@
-// 此程序仅用于对拍
+// 此程序仅用于对拍，并测试是否存在哈希冲突
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -6,7 +6,6 @@
 #include <set>
 #include <string>
 #include <unordered_map>
-#include "bpt/disk_manager.h"
 typedef uint64_t hash_t;
 inline hash_t Hash(std::string str) noexcept {
   constexpr static char salt1[10] = "mL;]-=eT";
