@@ -4,9 +4,9 @@
 #include <cstring>
 #include <shared_mutex>
 #include "vector.hpp"
-#include "bpt/bpt_page.hpp"
-#include "bpt/buffer_pool_manager.h"
-#include "bpt/config.h"
+#include "storage/bpt_page.hpp"
+#include "storage/buffer_pool_manager.h"
+#include "storage/config.h"
 /**
  * @brief B+ Tree Indexer
  * @warning The KeyType must can be stored byte by byte. As this is only the indexer, the type of value is always

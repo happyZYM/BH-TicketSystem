@@ -1,5 +1,7 @@
 #include <sockpp/tcp_acceptor.h>
 #include "basic_defs.h"
+#include "storage/bpt.hpp"
+#include "dataguard/dataguard.h"
 const std::string main_version = "0.0.1";
 const std::string build_version = GIT_COMMIT_HASH;
 std::shared_ptr<spdlog::logger> logger_ptr;

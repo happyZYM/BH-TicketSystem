@@ -1,7 +1,7 @@
 #ifndef BPT_PAGE_HPP
 #define BPT_PAGE_HPP
 #include <utility>
-#include "bpt/config.h"
+#include "storage/config.h"
 template <typename KeyType, size_t kPageSize = 4096>
 struct ActualDataType {
   typedef std::pair<KeyType, default_numeric_index_t> value_type;

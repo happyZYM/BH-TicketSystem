@@ -1,7 +1,7 @@
-#include "bpt/buffer_pool_manager.h"
+#include "storage/buffer_pool_manager.h"
 #include <cstring>
 #include <mutex>
-#include "bpt/config.h"
+#include "storage/config.h"
 Page::Page() : mem(new char[kPageSize]) {}
 Page::~Page() { delete[] mem; }
 void Page::ResetMemory() { memset(mem, 0, kPageSize); }

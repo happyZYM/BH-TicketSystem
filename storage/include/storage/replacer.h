@@ -2,7 +2,7 @@
 #define REPLACER_H
 #include <cstddef>
 #include <mutex>
-#include "bpt/config.h"
+#include "storage/config.h"
 class LRUKReplacer {
  public:
   LRUKReplacer() = delete;

@@ -3,8 +3,8 @@
 #include <ios>
 #include <iostream>
 #include <string>
-#include "bpt/bpt.hpp"
-#include "bpt/buffer_pool_manager.h"
+#include "storage/bpt.hpp"
+#include "storage/buffer_pool_manager.h"
 typedef uint64_t hash_t;
 inline hash_t Hash(std::string str) noexcept {
   constexpr static char salt1[10] = "mL;]-=eT";

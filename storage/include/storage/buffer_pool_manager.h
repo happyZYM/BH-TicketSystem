@@ -6,9 +6,9 @@
 #include <shared_mutex>
 #include "map.hpp"
 #include "list.hpp"
-#include "bpt/config.h"
-#include "bpt/disk_manager.h"
-#include "bpt/replacer.h"
+#include "storage/config.h"
+#include "storage/disk_manager.h"
+#include "storage/replacer.h"
 class BufferPoolManager;
 class Page {
  public:

@@ -1,4 +1,4 @@
-#include "bpt/replacer.h"
+#include "storage/replacer.h"
 #include <cstddef>
 LRUKReplacer::LRUKReplacer(size_t max_frame_count, size_t k_value)
     : max_frame_count(max_frame_count), k_value(k_value) {

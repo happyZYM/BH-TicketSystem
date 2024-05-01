@@ -1,4 +1,4 @@
-#include "bpt/buffer_pool_manager.h"
+#include "storage/buffer_pool_manager.h"
 #include <gtest/gtest.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -14,9 +14,9 @@
 #include <vector>
 #include "MemoryRiver.hpp"
 #include "MemoryRiverStd.hpp"
-#include "bpt/bpt_page.hpp"
-#include "bpt/config.h"
-#include "bpt/disk_manager.h"
+#include "storage/bpt_page.hpp"
+#include "storage/config.h"
+#include "storage/disk_manager.h"
 // Demonstrate some basic assertions.
 TEST(HelloTest, BasicAssertions) {
   // Expect two strings not to be equal.

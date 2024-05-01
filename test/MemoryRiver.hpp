@@ -1,8 +1,8 @@
 #include <cstddef>
 #include <cstring>
-#include "bpt/buffer_pool_manager.h"
-#include "bpt/config.h"
-#include "bpt/disk_manager.h"
+#include "storage/buffer_pool_manager.h"
+#include "storage/config.h"
+#include "storage/disk_manager.h"
 #ifndef BPT_MEMORYRIVER_HPP
 #define BPT_MEMORYRIVER_HPP
 

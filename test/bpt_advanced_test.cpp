@@ -5,10 +5,10 @@
 #include <spdlog/spdlog.h>
 #include <map>
 #include <random>
-#include "bpt/bpt.hpp"
-#include "bpt/buffer_pool_manager.h"
-#include "bpt/config.h"
-#include "bpt/disk_manager.h"
+#include "storage/bpt.hpp"
+#include "storage/buffer_pool_manager.h"
+#include "storage/config.h"
+#include "storage/disk_manager.h"
 namespace bpt_advanced_test {
 template <size_t length>
 class FixLengthString {

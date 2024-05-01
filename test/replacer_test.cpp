@@ -1,6 +1,6 @@
-#include "bpt/replacer.h"
+#include "storage/replacer.h"
 #include <gtest/gtest.h>
-#include "bpt/config.h"
+#include "storage/config.h"
 // Demonstrate some basic assertions.
 TEST(HelloTest, BasicAssertions) {
   // Expect two strings not to be equal.

@@ -4,8 +4,8 @@
 #include <memory>
 #include <random>
 #include <string>
-#include "bpt/buffer_pool_manager.h"
-#include "bpt/config.h"
+#include "storage/buffer_pool_manager.h"
+#include "storage/config.h"
 
 TEST(PageGuardTest, SampleTest) {
   const std::string db_name = "/tmp/test.db";

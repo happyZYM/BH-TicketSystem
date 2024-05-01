@@ -1,0 +1,1 @@
+add_library(storage STATIC src/disk_manager.cpp src/replacer.cpp src/buffer_pool_manager.cpp src/bpt.cpp)
