@@ -711,6 +711,12 @@ class map {
     RedBlackTreeNodeType::DeleteNode(pos.raw_pointer, tree_root);
     --node_count;
   }
+  void erase(const Key &key) {
+    RedBlackTreeNodeType *result = tree_root->Find(key);
+    if (result == nullptr) return;
+    RedBlackTreeNodeType::DeleteNode(result, tree_root);
+    --node_count;
+  }
   /**
    * Returns the number of elements with key
    *   that compares equivalent to the specified argument,

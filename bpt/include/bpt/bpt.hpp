@@ -1,12 +1,9 @@
 #ifndef BPT_HPP
 #define BPT_HPP
-#include <algorithm>
 #include <cassert>
-#include <cstdio>
 #include <cstring>
-#include <queue>
 #include <shared_mutex>
-#include <vector>
+#include "vector.hpp"
 #include "bpt/bpt_page.hpp"
 #include "bpt/buffer_pool_manager.h"
 #include "bpt/config.h"
@@ -25,7 +22,7 @@ class BPlusTreeIndexer {
 
  private:
   struct PositionSignType {
-    std::vector<std::pair<BasicPageGuard, in_page_key_count_t>> path;
+    sjtu::vector<std::pair<BasicPageGuard, in_page_key_count_t>> path;
     bool is_end{false};
   };
   PositionSignType FindPosition(const KeyType &key) {  // Finish Design

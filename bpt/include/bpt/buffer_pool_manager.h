@@ -1,11 +1,11 @@
 #ifndef BUFFER_POOL_MANAGER_H
 #define BUFFER_POOL_MANAGER_H
 #include <cstddef>
-#include <list>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include <unordered_map>
+#include "map.hpp"
+#include "list.hpp"
 #include "bpt/config.h"
 #include "bpt/disk_manager.h"
 #include "bpt/replacer.h"
@@ -395,7 +395,7 @@ class BufferPoolManager {
   std::mutex latch;
 #endif
   Page *pages_;
-  std::unordered_map<page_id_t, frame_id_t> page_table_;
-  std::list<frame_id_t> free_list_;
+  sjtu::map<page_id_t, frame_id_t> page_table_;
+  sjtu::list<frame_id_t> free_list_;
 };
 #endif

@@ -339,7 +339,7 @@ class vector {
    * access the last element.
    * throw container_is_empty if size == 0
    */
-  const T &back() const {
+  T &back() const {
     if (current_length == 0) [[unlikely]]
       throw container_is_empty();
     return raw_end[-1];
@@ -494,7 +494,7 @@ class vector {
   /**
    * adds an element to the end.
    */
-  void push_back(const T &value) {
+  void push_back(T value) {
     if (current_length == allocated_length) [[unlikely]] {
       size_t new_allocated_length = allocated_length * 2;
       T *new_raw_beg = alloc.allocate(new_allocated_length);
@@ -507,7 +507,7 @@ class vector {
       raw_end = raw_beg + current_length;
       allocated_length = new_allocated_length;
     }
-    std::allocator_traits<decltype(alloc)>::construct(alloc, raw_end, value);
+    std::allocator_traits<decltype(alloc)>::construct(alloc, raw_end, std::move(value));
     raw_end++;
     current_length++;
   }
