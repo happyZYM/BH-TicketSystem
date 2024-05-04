@@ -68,11 +68,15 @@ class DiskMap : public DataDriverBase {
     return true;
   }
   bool Put(const Key &key, Value &value) {
-    if (indexer->Put(key, data_storage->preview_next_blank())) {
-      data_storage->write(value);
-      return true;
+    b_plus_tree_value_index_t data_id;
+    data_id = indexer->Get(key);
+    if (data_id != kInvalidValueIndex) {
+      data_storage->update(value, data_id);
+      return false;
     }
-    return false;
+    data_id = data_storage->write(value);
+    indexer->Put(key, data_id);
+    return true;
   }
 };
 #endif  // DISK_MAP_H

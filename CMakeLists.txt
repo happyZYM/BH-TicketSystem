@@ -31,6 +31,7 @@ if(STATUS_LENGTH EQUAL 0)
 else()
   add_definitions(-DGIT_COMMIT_HASH="[developing]")
 endif()
+add_definitions(-DZSTD_STATIC_LINKING_ONLY)
 
 # 设置一个布尔类型的选项，用于控制是否启用高级功能，如日志（业务日志、程序日志、容错校验日志）、并发、快照等
 option(ENABLE_ADVANCED_FEATURE "Enable advanced features" OFF)

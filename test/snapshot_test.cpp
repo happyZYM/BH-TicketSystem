@@ -44,12 +44,12 @@ TEST(Basic, DiskMap) {
   std::map<int, int> std_map;
   remove("/tmp/index.db");
   remove("/tmp/data.db");
-  const int total_opts = 10;
+  const int total_opts = 1000000;
   {
     DiskMap<int, int> disk_map("index", "/tmp/index.db", "data", "/tmp/data.db");
     for (int i = 0; i < total_opts; i++) {
       int opt_id = rnd() % 100;
-      if (opt_id <= 30) {
+      if (opt_id <= 40) {
         if (keys_container.Size() > 0 && rnd() % 5 <= 2) {
           // overrite and existing key
           int key = keys_container.GetRandomKey(rnd);
@@ -90,4 +90,42 @@ TEST(Basic, DiskMap) {
       }
     }
   }
+}
+
+TEST(Basic, T1) {
+  remove("/tmp/1.dat");
+  remove("/tmp/2.dat");
+  remove("/tmp/diff.dat");
+  remove("/tmp/3.dat");
+  remove("/tmp/4.dat");
+  const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
+  std::mt19937 rnd(RndSeed);
+  const int str_len_s1 = 10000;
+  const int str_len_s2 = 9900;
+  char s1[str_len_s1], s2[str_len_s2];
+  for (int i = 0; i < str_len_s1 - 1; i++) {
+    s1[i] = 'a' + rnd() % 26;
+  }
+  s1[str_len_s1 - 1] = '\0';
+  memcpy(s2, s1, str_len_s2);
+  for (int i = 0; i < str_len_s2 - 1; i++) {
+    if (i >= str_len_s1) {
+      s2[i] = 'a' + rnd() % 26;
+      continue;
+    }
+    if (rnd() % 3 == 0) {
+      s2[i] = 'a' + rnd() % 26;
+    }
+  }
+  s2[str_len_s2 - 1] = '\0';
+  // write to file
+  FILE *fp = fopen("/tmp/1.dat", "wb");
+  fwrite(s1, 1, str_len_s1, fp);
+  fclose(fp);
+  fp = fopen("/tmp/2.dat", "wb");
+  fwrite(s2, 1, str_len_s2, fp);
+  fclose(fp);
+  GenerateDiff("/tmp/1.dat", "/tmp/2.dat", "/tmp/diff.dat");
+  ApplyPatch("/tmp/1.dat", "/tmp/diff.dat", "/tmp/3.dat", false);
+  ApplyPatch("/tmp/2.dat", "/tmp/diff.dat", "/tmp/4.dat", true);
 }

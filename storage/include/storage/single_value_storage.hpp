@@ -60,18 +60,18 @@ class SingleValueStorage {
     memcpy(raw_mem + n * sizeof(int), &tmp, sizeof(int));
   }
 
-  size_t preview_next_blank() {
-    if (first_blank_element_pair_id != 0) return first_blank_element_pair_id;
-    frame_id_t frame_id;
-    BasicPageGuard guard = bpm->NewPageGuarded(&frame_id);
-    first_blank_element_pair_id = frame_id * max_element_in_page;
-    for (size_t i = 0; i < max_element_in_page - 1; i++) {
-      guard.AsMut<Page>()->dat.elements[i].nxt_blank = first_blank_element_pair_id + i + 1;
-    }
-    guard.AsMut<Page>()->dat.elements[max_element_in_page - 1].nxt_blank = 0;
-    guard.AsMut<Page>()->dat.elements_count = 0;
-    return first_blank_element_pair_id;
-  }
+  // size_t preview_next_blank() {
+  //   if (first_blank_element_pair_id != 0) return first_blank_element_pair_id;
+  //   frame_id_t frame_id;
+  //   BasicPageGuard guard = bpm->NewPageGuarded(&frame_id);
+  //   first_blank_element_pair_id = frame_id * max_element_in_page;
+  //   for (size_t i = 0; i < max_element_in_page - 1; i++) {
+  //     guard.AsMut<Page>()->dat.elements[i].nxt_blank = first_blank_element_pair_id + i + 1;
+  //   }
+  //   guard.AsMut<Page>()->dat.elements[max_element_in_page - 1].nxt_blank = 0;
+  //   guard.AsMut<Page>()->dat.elements_count = 0;
+  //   return first_blank_element_pair_id;
+  // }
   int write(T &t) {
     size_t element_id = first_blank_element_pair_id;
     size_t res_id = 0;

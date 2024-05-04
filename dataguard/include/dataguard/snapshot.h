@@ -4,6 +4,8 @@
 #include "map.hpp"
 #include "storage/driver.h"
 #include "vector.hpp"
+void GenerateDiff(const std::string &old_file, const std::string &new_file, const std::string &diff_file);
+void ApplyPatch(const std::string &old_file, const std::string &diff_file, const std::string &new_file, bool is_reverse);
 class SnapShotManager {
   bool has_connected = false;
   sjtu::vector<DataDriverBase *> drivers;

@@ -534,6 +534,8 @@ class vector {
     //   allocated_length = new_allocated_length;
     // }
   }
+
+  T *data() { return raw_beg; }
 };
 template <typename T>
 std::allocator<T> vector<T>::alloc;
