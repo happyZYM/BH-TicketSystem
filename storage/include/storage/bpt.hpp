@@ -3,10 +3,10 @@
 #include <cassert>
 #include <cstring>
 #include <shared_mutex>
-#include "vector.hpp"
 #include "storage/bpt_page.hpp"
 #include "storage/buffer_pool_manager.h"
 #include "storage/config.h"
+#include "vector.hpp"
 /**
  * @brief B+ Tree Indexer
  * @warning The KeyType must can be stored byte by byte. As this is only the indexer, the type of value is always
@@ -815,7 +815,7 @@ class BPlusTreeIndexer {
     ++siz;
     return true;
   }
-  bool Remove(const KeyType &key) {  // Finish Design
+  bool Remove(const KeyType &key, b_plus_tree_value_index_t *value_removed = nullptr) {  // Finish Design
 #ifdef ENABLE_ADVANCED_FEATURE
     std::unique_lock<std::shared_mutex> guard(latch);
 #endif
@@ -823,6 +823,9 @@ class BPlusTreeIndexer {
     if (pos.is_end) return false;
     if (key_cmp(key, pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].first))
       return false;
+    if (!value_removed) {
+      *value_removed = pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].second;
+    }
     RemoveEntryAt(pos);
     --siz;
     return true;

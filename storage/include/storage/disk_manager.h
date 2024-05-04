@@ -17,6 +17,7 @@ class DiskManager {
    * for first_empty_page_id).
    */
  public:
+  DiskManager() = delete;
   explicit DiskManager(const std::string &file_path_, bool renew = false);
   ~DiskManager();
   char *RawDataMemory();
