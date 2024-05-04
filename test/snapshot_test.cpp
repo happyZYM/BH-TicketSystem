@@ -129,3 +129,30 @@ TEST(Basic, T1) {
   ApplyPatch("/tmp/1.dat", "/tmp/diff.dat", "/tmp/3.dat", false);
   ApplyPatch("/tmp/2.dat", "/tmp/diff.dat", "/tmp/4.dat", true);
 }
+
+TEST(Basic, T2) {
+  remove("/tmp/T2/index.db");
+  remove("/tmp/T2/data.db");
+  remove("/tmp/T2/meta.dat");
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100000; i++) disk_map.Put(i, i);
+    snap_shot_manager.CreateSnapShot("snap1");
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100; i += 10) disk_map.Put(i + 3, i);
+    snap_shot_manager.CreateSnapShot("snap2");
+    snap_shot_manager.CreateSnapShot("snap3");
+  }
+}

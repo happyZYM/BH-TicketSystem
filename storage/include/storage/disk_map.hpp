@@ -78,5 +78,9 @@ class DiskMap : public DataDriverBase {
     indexer->Put(key, data_id);
     return true;
   }
+  void Flush() {
+    indexer->Flush();
+    data_storage->Flush();
+  }
 };
 #endif  // DISK_MAP_H

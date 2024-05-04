@@ -47,7 +47,10 @@ class SingleValueStorage {
   ~SingleValueStorage() {
     if (bpm != nullptr) CloseFile();
   }
-
+  void Flush() {
+    memcpy(raw_mem, &first_blank_element_pair_id, sizeof(size_t));
+    bpm->FlushAllPages();
+  }
   void get_info(int &tmp, int n) {
     if (n > info_len) return;
     n += 2;

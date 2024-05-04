@@ -13,5 +13,6 @@ class DataDriverBase {
   DataDriverBase() = default;
   virtual ~DataDriverBase() = default;
   virtual sjtu::vector<FileEntry> ListFiles() = 0;
+  virtual void Flush() = 0;
 };
 #endif  // DRIVER_H
