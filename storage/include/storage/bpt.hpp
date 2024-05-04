@@ -823,7 +823,7 @@ class BPlusTreeIndexer {
     if (pos.is_end) return false;
     if (key_cmp(key, pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].first))
       return false;
-    if (!value_removed) {
+    if (value_removed != nullptr) {
       *value_removed = pos.path.back().first.template As<PageType>()->data.p_data[pos.path.back().second].second;
     }
     RemoveEntryAt(pos);

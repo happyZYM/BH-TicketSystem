@@ -263,8 +263,8 @@ TEST(MemoryRiver, T2) {
   size_t interal_id_tot = 0;
   const unsigned int RndSeed = testing::GTEST_FLAG(random_seed);
   std::mt19937 rnd(RndSeed);
-  remove("T2.std");
-  remove("T2.dat");
+  remove("/tmp/T2.std");
+  remove("/tmp/T2.dat");
   const int kInfoLength = 100;
   {
     sol::MemoryRiver<DataType, kInfoLength> STD("/tmp/T2.std");
