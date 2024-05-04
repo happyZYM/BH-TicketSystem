@@ -521,18 +521,18 @@ class vector {
     std::allocator_traits<decltype(alloc)>::destroy(alloc, raw_end - 1);
     raw_end--;
     current_length--;
-    if (current_length != 0 && current_length <= allocated_length / 4) [[unlikely]] {
-      size_t new_allocated_length = allocated_length / 2;
-      T *new_raw_beg = alloc.allocate(new_allocated_length);
-      for (size_t i = 0; i < current_length; ++i) {
-        std::allocator_traits<decltype(alloc)>::construct(alloc, new_raw_beg + i, std::move(raw_beg[i]));
-        std::allocator_traits<decltype(alloc)>::destroy(alloc, raw_beg + i);
-      }
-      alloc.deallocate(raw_beg, allocated_length);
-      raw_beg = new_raw_beg;
-      raw_end = raw_beg + current_length;
-      allocated_length = new_allocated_length;
-    }
+    // if (current_length != 0 && current_length <= allocated_length / 4) [[unlikely]] {
+    //   size_t new_allocated_length = allocated_length / 2;
+    //   T *new_raw_beg = alloc.allocate(new_allocated_length);
+    //   for (size_t i = 0; i < current_length; ++i) {
+    //     std::allocator_traits<decltype(alloc)>::construct(alloc, new_raw_beg + i, std::move(raw_beg[i]));
+    //     std::allocator_traits<decltype(alloc)>::destroy(alloc, raw_beg + i);
+    //   }
+    //   alloc.deallocate(raw_beg, allocated_length);
+    //   raw_beg = new_raw_beg;
+    //   raw_end = raw_beg + current_length;
+    //   allocated_length = new_allocated_length;
+    // }
   }
 };
 template <typename T>
