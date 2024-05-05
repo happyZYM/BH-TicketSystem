@@ -333,14 +333,15 @@ void SnapShotManager::CreateSnapShot(const std::string &snap_shot_ID) {
   sjtu::vector<std::pair<std::string, std::string>> snapshot_relationship;
   std::string cur, anc;
   sjtu::map<std::string, sjtu::vector<std::string>> son_list;
+  sjtu::map<std::string, std::string> get_anc;
   while (fs >> cur >> anc) {
     snapshot_relationship.push_back({cur, anc});
     son_list[anc].push_back(cur);
+    get_anc[cur] = anc;
   }
-  if (son_list.find(snap_shot_ID) != son_list.end()) {
+  if (son_list.find(snap_shot_ID) != son_list.end() || get_anc.find(snap_shot_ID) != get_anc.end()) {
     throw std::runtime_error("Snapshot already exists");
   }
-  // TODO
   fs.close();
   fs.open(meta_file, std::ios::in | std::ios::out);
   fs << snap_shot_ID << '\n';
@@ -358,5 +359,83 @@ void SnapShotManager::CreateSnapShot(const std::string &snap_shot_ID) {
       // then overwrite the frontier file
       CopyFile(files[j].path, frontier_file);
     }
+  }
+}
+
+void SnapShotManager::CheckOutFrontier() {
+  if (!has_set_meta_file) {
+    throw std::runtime_error("SnapShotManager has not set the meta file");
+  }
+  if (!has_connected) {
+    throw std::runtime_error("SnapShotManager has not connected to the data drivers");
+  }
+  if (logger_ptr) {
+    logger_ptr->info("Checking out frontier");
+  }
+  std::fstream fs(meta_file, std::ios::in);
+  std::string HEAD;
+  fs >> HEAD;
+  for (size_t i = 0; i < drivers.size(); i++) {
+    drivers[i]->Flush();
+    drivers[i]->LockDownForCheckOut();
+    if (logger_ptr) {
+      logger_ptr->info("flushed and locked down driver {}", i);
+    }
+    sjtu::vector<DataDriverBase::FileEntry> files = drivers[i]->ListFiles();
+    for (size_t j = 0; j < files.size(); j++) {
+      if (HEAD == "INIT") {
+        remove(files[j].path.c_str());
+        continue;
+      }
+      std::string frontier_file = files[j].path + ".frontier";
+      // then overwrite the frontier file
+      CopyFile(frontier_file, files[j].path);
+    }
+  }
+}
+
+void SnapShotManager::SwitchToSnapShot(const std::string &snap_shot_ID) {
+  if (!has_set_meta_file) {
+    throw std::runtime_error("SnapShotManager has not set the meta file");
+  }
+  if (!has_connected) {
+    throw std::runtime_error("SnapShotManager has not connected to the data drivers");
+  }
+  if (logger_ptr) {
+    logger_ptr->info("Try switching to snapshot {}", snap_shot_ID);
+  }
+  sjtu::vector<WayEntry> way = std::move(FindWay(snap_shot_ID));
+  if (logger_ptr) {
+    logger_ptr->info("Successfully found the way");
+  }
+  for (size_t i = 0; i < drivers.size(); i++) {
+    drivers[i]->Flush();
+    sjtu::vector<DataDriverBase::FileEntry> files = drivers[i]->ListFiles();
+    for (size_t j = 0; j < files.size(); j++) {
+      std::string frontier_file = files[j].path + ".frontier";
+      if (logger_ptr) {
+        logger_ptr->info("applying changes to {}", frontier_file);
+      }
+      ApplyLongChange(frontier_file, frontier_file + ".tmp", way, files[j].path);
+      remove(frontier_file.c_str());
+      rename((frontier_file + ".tmp").c_str(), frontier_file.c_str());
+      if (logger_ptr) {
+        logger_ptr->info("successfully applied changes to {}", frontier_file);
+      }
+    }
+  }
+  std::fstream fs(meta_file, std::ios::in | std::ios::out);
+  std::string HEAD;
+  fs >> HEAD;
+  sjtu::vector<std::pair<std::string, std::string>> snapshot_relationship;
+  std::string cur, anc;
+  while (fs >> cur >> anc) {
+    snapshot_relationship.push_back({cur, anc});
+  }
+  fs.close();
+  fs.open(meta_file, std::ios::in | std::ios::out);
+  fs << snap_shot_ID << '\n';
+  for (size_t i = 0; i < snapshot_relationship.size(); i++) {
+    fs << snapshot_relationship[i].first << ' ' << snapshot_relationship[i].second << '\n';
   }
 }

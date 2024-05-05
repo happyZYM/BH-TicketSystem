@@ -53,6 +53,20 @@ class DiskMap : public DataDriverBase {
     res.push_back({data_file_identifier, data_file_path, data_disk_manager});
     return res;
   }
+  void LockDownForCheckOut() override {
+    delete indexer;
+    delete index_bpm;
+    delete index_disk_manager;
+    delete data_storage;
+    delete data_bpm;
+    delete data_disk_manager;
+    indexer = nullptr;
+    index_bpm = nullptr;
+    index_disk_manager = nullptr;
+    data_storage = nullptr;
+    data_bpm = nullptr;
+    data_disk_manager = nullptr;
+  }
   Value Get(const Key &key) {
     size_t data_id;
     if ((data_id = indexer->Get(key)) == kInvalidValueIndex) throw std::runtime_error("Key not found");

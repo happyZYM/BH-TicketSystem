@@ -131,6 +131,8 @@ TEST(Basic, T1) {
 }
 
 TEST(Basic, T2) {
+  std::shared_ptr<spdlog::logger> logger_ptr = spdlog::stderr_color_mt("stderr_logger");
+  mkdir("/tmp/T2", 0700);
   remove("/tmp/T2/index.db");
   remove("/tmp/T2/data.db");
   remove("/tmp/T2/meta.dat");
@@ -140,6 +142,7 @@ TEST(Basic, T2) {
     sjtu::vector<DataDriverBase *> drivers;
     drivers.push_back(&disk_map);
     snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
     snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
     for (int i = 0; i < 100000; i++) disk_map.Put(i, i);
     snap_shot_manager.CreateSnapShot("snap1");
@@ -150,9 +153,89 @@ TEST(Basic, T2) {
     sjtu::vector<DataDriverBase *> drivers;
     drivers.push_back(&disk_map);
     snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
     snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
-    for (int i = 0; i < 100; i += 10) disk_map.Put(i + 3, i);
+    for (int i = 0; i < 100; i += 10) {
+      int tmp = i + 3;
+      disk_map.Put(i, tmp);
+    }
     snap_shot_manager.CreateSnapShot("snap2");
+    snap_shot_manager.SwitchToSnapShot("INIT");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    snap_shot_manager.SwitchToSnapShot("snap1");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100000; i++) EXPECT_EQ(disk_map.Get(i), i);
+    snap_shot_manager.SwitchToSnapShot("snap2");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100; i += 10) EXPECT_EQ(disk_map.Get(i), i + 3);
+    snap_shot_manager.SwitchToSnapShot("INIT");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100; i += 10) {
+      int tmp = i + 4;
+      disk_map.Put(i, tmp);
+    }
     snap_shot_manager.CreateSnapShot("snap3");
+    snap_shot_manager.SwitchToSnapShot("snap2");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100; i += 10) EXPECT_EQ(disk_map.Get(i), i + 3);
+    snap_shot_manager.SwitchToSnapShot("snap3");
+    snap_shot_manager.CheckOutFrontier();
+  }
+  {
+    DiskMap<int, int> disk_map("index", "/tmp/T2/index.db", "data", "/tmp/T2/data.db");
+    SnapShotManager snap_shot_manager;
+    sjtu::vector<DataDriverBase *> drivers;
+    drivers.push_back(&disk_map);
+    snap_shot_manager.Connect(drivers);
+    snap_shot_manager.SetLogger(logger_ptr);
+    snap_shot_manager.SetMetaFile("/tmp/T2/meta.dat");
+    for (int i = 0; i < 100; i += 10) EXPECT_EQ(disk_map.Get(i), i + 4);
+    snap_shot_manager.SwitchToSnapShot("INIT");
+    snap_shot_manager.CheckOutFrontier();
   }
 }

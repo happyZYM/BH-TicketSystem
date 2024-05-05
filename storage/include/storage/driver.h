@@ -14,5 +14,6 @@ class DataDriverBase {
   virtual ~DataDriverBase() = default;
   virtual sjtu::vector<FileEntry> ListFiles() = 0;
   virtual void Flush() = 0;
+  virtual void LockDownForCheckOut() = 0;
 };
 #endif  // DRIVER_H
