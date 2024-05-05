@@ -93,6 +93,7 @@ class DiskMap : public DataDriverBase {
     return true;
   }
   void Flush() {
+    if (indexer == nullptr) return;
     indexer->Flush();
     data_storage->Flush();
   }

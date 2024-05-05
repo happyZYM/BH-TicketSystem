@@ -3,6 +3,7 @@
 #include <zstd.h>
 #include <cstdint>
 #include <fstream>
+#include <stdexcept>
 #include "map.hpp"
 #include "storage/config.h"
 #include "vector.hpp"
@@ -438,4 +439,106 @@ void SnapShotManager::SwitchToSnapShot(const std::string &snap_shot_ID) {
   for (size_t i = 0; i < snapshot_relationship.size(); i++) {
     fs << snapshot_relationship[i].first << ' ' << snapshot_relationship[i].second << '\n';
   }
+  if (logger_ptr) {
+    logger_ptr->info("Successfully switched to snapshot {}", snap_shot_ID);
+  }
+}
+
+void SnapShotManager::RemoveSnapShot(const std::string &snap_shot_ID) {
+  if (!has_set_meta_file) {
+    throw std::runtime_error("SnapShotManager has not set the meta file");
+  }
+  if (!has_connected) {
+    throw std::runtime_error("SnapShotManager has not connected to the data drivers");
+  }
+  if (snap_shot_ID == "INIT") {
+    throw std::runtime_error("Cannot remove INIT snapshot");
+  }
+  if (logger_ptr) {
+    logger_ptr->info("Try removing snapshot {}", snap_shot_ID);
+  }
+  std::fstream fs(meta_file, std::ios::in | std::ios::out);
+  std::string HEAD;
+  fs >> HEAD;
+  if (snap_shot_ID == HEAD) {
+    throw std::runtime_error("Cannot remove HEAD snapshot");
+  }
+  sjtu::vector<std::pair<std::string, std::string>> snapshot_relationship;
+  std::string cur, anc;
+  sjtu::map<std::string, sjtu::vector<std::string>> son_list;
+  sjtu::map<std::string, std::string> get_anc;
+  while (fs >> cur >> anc) {
+    snapshot_relationship.push_back({cur, anc});
+    son_list[anc].push_back(cur);
+    get_anc[cur] = anc;
+  }
+  if (son_list.find(snap_shot_ID) == son_list.end() && get_anc.find(snap_shot_ID) == get_anc.end()) {
+    throw std::runtime_error("unable to find snapshot to remove");
+  }
+  fs.close();
+  if (son_list.find(snap_shot_ID) == son_list.end()) {
+    // simply remove it
+    if (logger_ptr) {
+      logger_ptr->info("Removing snapshot {}", snap_shot_ID);
+      logger_ptr->info("since it has no son, we can remove it directly");
+    }
+    for (size_t i = 0; i < drivers.size(); i++) {
+      drivers[i]->Flush();
+      sjtu::vector<DataDriverBase::FileEntry> files = drivers[i]->ListFiles();
+      for (size_t j = 0; j < files.size(); j++) {
+        remove((files[j].path + "." + snap_shot_ID + ".diff").c_str());
+        if (logger_ptr) {
+          logger_ptr->info("removed diff file {}", files[j].path + "." + snap_shot_ID + ".diff");
+        }
+      }
+    }
+    fs.open(meta_file, std::ios::in | std::ios::out);
+    fs << HEAD << '\n';
+    for (size_t i = 0; i < snapshot_relationship.size(); i++) {
+      if (snapshot_relationship[i].first != snap_shot_ID) {
+        fs << snapshot_relationship[i].first << ' ' << snapshot_relationship[i].second << '\n';
+      }
+    }
+    return;
+  }
+  if (get_anc.find(snap_shot_ID) == get_anc.end()) {
+    throw std::runtime_error(
+        "yor are trying to remove a snapshot that is isolated from the tree, maybe the snapshot repository is "
+        "currupted");
+  }
+  sjtu::vector<WayEntry> way = std::move(FindWay(snap_shot_ID));
+  if (logger_ptr) {
+    logger_ptr->info("Successfully found the way");
+  }
+  anc = get_anc[snap_shot_ID];
+  auto &sons = son_list[snap_shot_ID];
+  for (size_t i = 0; i < sons.size(); i++) {
+    std::string cur_song = sons[i];
+    for (size_t j = 0; j < drivers.size(); j++) {
+      drivers[j]->Flush();
+      sjtu::vector<DataDriverBase::FileEntry> files = drivers[j]->ListFiles();
+      for (size_t k = 0; k < files.size(); k++) {
+        std::string frontier_file = files[k].path + ".frontier";
+        ApplyLongChange(frontier_file, frontier_file + ".tmp", way, files[k].path);
+        ApplyPatch(frontier_file + ".tmp", files[k].path + "." + cur_song + ".diff", frontier_file + ".tmp." + cur_song,
+                   false);
+        ApplyPatch(frontier_file + ".tmp", files[k].path + "." + snap_shot_ID + ".diff", frontier_file + ".tmp.anctmp",
+                   true);
+        remove((files[k].path + "." + cur_song + ".diff").c_str());
+        GenerateDiff(frontier_file + ".tmp.anctmp", frontier_file + ".tmp." + cur_song,
+                     files[k].path + "." + cur_song + ".diff");
+        remove((frontier_file + ".tmp").c_str());
+        remove((frontier_file + ".tmp." + cur_song).c_str());
+        remove((frontier_file + ".tmp.anctmp").c_str());
+      }
+    }
+  }
+  fs.open(meta_file, std::ios::out);
+  fs << HEAD << '\n';
+  for (size_t i = 0; i < snapshot_relationship.size(); i++) {
+    if (snapshot_relationship[i].first == snap_shot_ID) continue;
+    if (snapshot_relationship[i].second == snap_shot_ID) continue;
+    fs << snapshot_relationship[i].first << ' ' << snapshot_relationship[i].second << '\n';
+  }
+  for (size_t i = 0; i < sons.size(); i++) fs << sons[i] << ' ' << anc << '\n';
 }
