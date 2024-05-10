@@ -36,7 +36,7 @@ typedef std::pair<hash_t, int> ValType;
 const int kIntMin = std::numeric_limits<int>::min();
 int main() {
   DiskManager *disk_manager = new DiskManager("data.db");
-  BufferPoolManager *buffer_pool_manager = new BufferPoolManager(100, 10, disk_manager);
+  BufferPoolManager *buffer_pool_manager = new BufferPoolManager(1000, 10, disk_manager);
   {
     BPlusTreeIndexer<ValType, std::less<ValType>> bpt(buffer_pool_manager);
     int n;
