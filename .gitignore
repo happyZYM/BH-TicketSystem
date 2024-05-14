@@ -5,3 +5,4 @@
 /build
 /mbuild
 /.clang-format
+/test/data
