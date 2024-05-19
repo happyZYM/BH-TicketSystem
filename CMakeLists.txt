@@ -35,8 +35,8 @@ add_definitions(-DZSTD_STATIC_LINKING_ONLY)
 
 # 设置一个布尔类型的选项，用于控制是否启用高级功能，如日志（业务日志、程序日志、容错校验日志）、并发、快照等
 option(ENABLE_ADVANCED_FEATURE "Enable advanced features" OFF)
-option(OJ_TEST_BPT "Enable OJ test for B+ Tree" ON)
-option(OJ_TEST_BACKEND "Enable OJ test for backend" OFF)
+option(OJ_TEST_BPT "Enable OJ test for B+ Tree" OFF)
+option(OJ_TEST_BACKEND "Enable OJ test for backend" ON)
 
 # 如果 ENABLE_ADVANCED_FEATURE 选项为 ON，则定义 ENABLE_ADVANCED_FEATURE 宏
 if (ENABLE_ADVANCED_FEATURE)
