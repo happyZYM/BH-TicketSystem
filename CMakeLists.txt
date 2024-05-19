@@ -90,6 +90,7 @@ include_directories(${CMAKE_SOURCE_DIR}/stlite)
 
 include(CTest)
 enable_testing()
+include(test/ctest_config)
 
 add_subdirectory(storage)
 add_subdirectory(dataguard)
