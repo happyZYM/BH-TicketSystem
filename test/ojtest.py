@@ -92,6 +92,7 @@ def RunTestGroup(name):
       has_unpassed_test=True
       continue
     if disk_limit<0:
+      print("removing disk files")
       disk_limit = -disk_limit
       # remove directory /tmp/$name
       shutil.rmtree(playground_dir, ignore_errors=True)
