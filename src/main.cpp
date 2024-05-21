@@ -1,4 +1,5 @@
 #include <sockpp/tcp_acceptor.h>
+#include <exception>
 #include "basic_defs.h"
 #include "dataguard/dataguard.h"
 #include "engine.h"
@@ -17,7 +18,7 @@ const bool optimize_enabled = false;
 // const bool global_log_enabled = true;
 // #endif
 int main(int argc, char *argv[]) {
-  argparse::ArgumentParser program("core-cli", main_version + "-" + build_version);
+  argparse::ArgumentParser program("zts-core", main_version + "-" + build_version);
   argparse::ArgumentParser fsck_command("fsck");
   fsck_command.add_description("Check and fix data");
   program.add_subparser(fsck_command);
@@ -29,6 +30,9 @@ int main(int argc, char *argv[]) {
       .default_value(std::string("127.0.0.1"))
       .nargs(1, 1);
   program.add_subparser(server_command);
+  argparse::ArgumentParser snapshot_command("snapshot");
+  snapshot_command.add_description("Manage snapshots");
+  program.add_subparser(snapshot_command);
   program.add_argument("-d", "--directory").help("Directory to serve").default_value(std::string(".")).nargs(1, 1);
   auto &group = program.add_mutually_exclusive_group();
   group.add_argument("-c", "--consolelog").help("Enable console log").default_value(false).implicit_value(true);
@@ -81,29 +85,37 @@ int main(int argc, char *argv[]) {
   LOG->info("Data directory: {}", data_directory);
   bool is_server = program.is_subcommand_used("server");
   LOG->info("Server mode: {}", is_server);
-  if (is_server) {
-    auto port = server_command.get<int>("--port");
-    auto address = server_command.get<std::string>("--address");
-    LOG->info("Server port: {}", port);
-    LOG->info("Server address: {}", address);
-    LOG->info("Starting server");
-    sockpp::tcp_acceptor acceptor(sockpp::inet_address(address, port));
-    if (!acceptor) {
-      LOG->error("Error creating acceptor: {}", acceptor.last_error_str());
-      return 1;
-    } else
-      LOG->info("successfully bind to address {} port {}", address, port);
-    throw std::runtime_error("Server mode not implemented");
-  } else {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    std::cout.tie(nullptr);
-    TicketSystemEngine engine(data_directory);
-    std::string cmd;
-    while (std::getline(std::cin, cmd)) {
-      std::cout << engine.Execute(cmd) << '\n';
-      std::cout.flush();
+  try {
+    if (is_server) {
+      auto port = server_command.get<int>("--port");
+      auto address = server_command.get<std::string>("--address");
+      LOG->info("Server port: {}", port);
+      LOG->info("Server address: {}", address);
+      LOG->info("Starting server");
+      sockpp::tcp_acceptor acceptor(sockpp::inet_address(address, port));
+      if (!acceptor) {
+        LOG->error("Error creating acceptor: {}", acceptor.last_error_str());
+        return 1;
+      } else
+        LOG->info("successfully bind to address {} port {}", address, port);
+      throw std::runtime_error("Server mode not implemented");
+    } else {
+      std::ios::sync_with_stdio(false);
+      std::cin.tie(nullptr);
+      std::cout.tie(nullptr);
+      TicketSystemEngine engine(data_directory);
+      std::string cmd;
+      while (std::getline(std::cin, cmd)) {
+        std::cout << engine.Execute(cmd) << '\n';
+        std::cout.flush();
+      }
     }
+  } catch (std::exception &e) {
+    LOG->error("Exception: {}", e.what());
+    return 1;
+  } catch (...) {
+    LOG->error("Unknown exception");
+    return 2;
   }
   return 0;
 }

@@ -7,17 +7,23 @@
 #include "dataguard/snapshot.h"
 #endif
 #include <vector>
+#include "data.h"
+#include "storage/disk_map.hpp"
 #include "utils.h"
 class TicketSystemEngine {
 #ifdef ENABLE_ADVANCED_FEATURE
   SnapShotManager snapshot_manager;
 #endif
   std::string data_directory;
-  std::map<hash_t, bool> online_users;
+  std::map<hash_t, uint8_t> online_users;
+  DiskMap<hash_t, FullUserData> user_data;
   void PrepareExit();
 
  public:
-  inline TicketSystemEngine(std::string data_directory) : data_directory(data_directory) {}
+  inline TicketSystemEngine(std::string data_directory)
+      : data_directory(data_directory),
+        user_data("user_data.idx", data_directory + "/user_data.idx", "user_data.val",
+                  data_directory + "/user_data.val") {}
   std::string Execute(const std::string &command);
 
   // 用户相关函数
@@ -42,6 +48,6 @@ class TicketSystemEngine {
   std::string QueryTransfer(const std::string &command);
   std::string QueryTicket(const std::string &command);
   std::string Clean();
-  std::string Exit();
+  std::string Exit(const std::string &command);
 };
 #endif

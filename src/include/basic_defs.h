@@ -16,5 +16,8 @@ constexpr bool global_log_enabled = false;
 constexpr bool global_log_enabled = true;
 #endif
 extern const bool optimize_enabled;
-#define LOG if constexpr (global_log_enabled) if (logger_ptr) logger_ptr
+#define LOG                         \
+  if constexpr (global_log_enabled) \
+    if (logger_ptr) logger_ptr
+typedef unsigned long long command_id_t;
 #endif

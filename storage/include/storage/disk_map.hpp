@@ -53,7 +53,7 @@ class DiskMap : public DataDriverBase {
     res.push_back({data_file_identifier, data_file_path, data_disk_manager});
     return res;
   }
-  void LockDownForCheckOut() override {
+  virtual void LockDownForCheckOut() override {
     delete indexer;
     delete index_bpm;
     delete index_disk_manager;
@@ -67,6 +67,7 @@ class DiskMap : public DataDriverBase {
     data_bpm = nullptr;
     data_disk_manager = nullptr;
   }
+  bool HasKey(const Key &key) { return indexer->Get(key) != kInvalidValueIndex; }
   Value Get(const Key &key) {
     size_t data_id;
     if ((data_id = indexer->Get(key)) == kInvalidValueIndex) throw std::runtime_error("Key not found");
@@ -74,6 +75,12 @@ class DiskMap : public DataDriverBase {
     data_storage->read(res, data_id);
     return res;
   }
+  void Get(const Key &key, Value &res) {
+    size_t data_id;
+    if ((data_id = indexer->Get(key)) == kInvalidValueIndex) throw std::runtime_error("Key not found");
+    data_storage->read(res, data_id);
+  }
+  size_t size() { return indexer->Size(); }
   bool Remove(const Key &key) {
     b_plus_tree_value_index_t data_id;
     bool remove_success = indexer->Remove(key, &data_id);
@@ -92,7 +99,7 @@ class DiskMap : public DataDriverBase {
     indexer->Put(key, data_id);
     return true;
   }
-  void Flush() {
+  virtual void Flush() override {
     if (indexer == nullptr) return;
     indexer->Flush();
     data_storage->Flush();

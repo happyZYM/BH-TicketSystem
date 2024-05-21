@@ -115,7 +115,7 @@ def RunTestGroup(name):
     if not enable_tested_program_logging:
       command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} < {input_file} > {output_file} 2> {stderr_file}'
     else:
-      command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} -l {log_file} < {input_file} > {output_file} 2> {stderr_file}'
+      command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} -l {log_file} --level debug < {input_file} > {output_file} 2> {stderr_file}'
     print("the test command is: ", command)
     process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=playground_dir)
     # Check the exit status of the command
