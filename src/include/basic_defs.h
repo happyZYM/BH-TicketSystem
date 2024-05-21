@@ -10,7 +10,11 @@
 extern const std::string main_version;
 extern const std::string build_version;
 extern std::shared_ptr<spdlog::logger> logger_ptr;
-extern const bool global_log_enabled;
+#ifndef ENABLE_ADVANCED_FEATURE
+constexpr bool global_log_enabled = false;
+#else
+constexpr bool global_log_enabled = true;
+#endif
 extern const bool optimize_enabled;
 #define LOG if constexpr (global_log_enabled) if (logger_ptr) logger_ptr
 #endif

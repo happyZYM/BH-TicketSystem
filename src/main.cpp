@@ -1,7 +1,8 @@
 #include <sockpp/tcp_acceptor.h>
 #include "basic_defs.h"
-#include "storage/bpt.hpp"
 #include "dataguard/dataguard.h"
+#include "engine.h"
+#include "storage/bpt.hpp"
 const std::string main_version = "0.0.1";
 const std::string build_version = GIT_COMMIT_HASH;
 std::shared_ptr<spdlog::logger> logger_ptr;
@@ -10,11 +11,11 @@ const bool optimize_enabled = __OPTIMIZE__;
 #else
 const bool optimize_enabled = false;
 #endif
-#ifndef ENABLE_ADVANCED_FEATURE
-const bool global_log_enabled = false;
-#else
-const bool global_log_enabled = true;
-#endif
+// #ifndef ENABLE_ADVANCED_FEATURE
+// const bool global_log_enabled = false;
+// #else
+// const bool global_log_enabled = true;
+// #endif
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("core-cli", main_version + "-" + build_version);
   argparse::ArgumentParser fsck_command("fsck");
@@ -92,6 +93,17 @@ int main(int argc, char *argv[]) {
       return 1;
     } else
       LOG->info("successfully bind to address {} port {}", address, port);
+    throw std::runtime_error("Server mode not implemented");
+  } else {
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    std::cout.tie(nullptr);
+    TicketSystemEngine engine(data_directory);
+    std::string cmd;
+    while (std::getline(std::cin, cmd)) {
+      std::cout << engine.Execute(cmd) << '\n';
+      std::cout.flush();
+    }
   }
   return 0;
 }

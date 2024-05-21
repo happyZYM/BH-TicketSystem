@@ -40,11 +40,14 @@ elif argc>=2:
 
 skip_check=False
 ignore_first_dependency=False
+enable_tested_program_logging=False
 for i in range(argc):
   if argv[i]=="--skip-check":
     skip_check=True
   if argv[i]=="--ignore-first-dependency":
     ignore_first_dependency=True
+  if argv[i]=="--enable-tested-program-logging":
+    enable_tested_program_logging=True
 
 if not skip_check:
   command = 'cat ticket.sum | sha256sum -c'
@@ -102,13 +105,17 @@ def RunTestGroup(name):
     answer_file=data_dir+str(test_point_id)+".out"
     stderr_file=playground_dir+"/"+str(test_point_id)+".err"
     diff_file=playground_dir+"/"+str(test_point_id)+".diff"
+    log_file=playground_dir+"/"+str(test_point_id)+".log"
     time_limit = int(time_limit / 1000) # convert to seconds
     memory_limit = int(memory_limit / 1024) # convert to KB
     disk_limit = int(disk_limit / 512) # convert to 512B
     print("input_file {}, output_file {}, answer_file {}".format(input_file, output_file, answer_file))
     print("time limit {}, disk limit {}, file number limit {}".format(time_limit, disk_limit, file_number_limit))
     # run the path_to_exec_file with input_file and output_file with cwd=playground_dir
-    command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} < {input_file} > {output_file} 2> {stderr_file}'
+    if not enable_tested_program_logging:
+      command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} < {input_file} > {output_file} 2> {stderr_file}'
+    else:
+      command = f'ulimit -t {time_limit} && ulimit -m {memory_limit} && ulimit -f {disk_limit} && ulimit -n {file_number_limit} && {path_to_exec_file} -l {log_file} < {input_file} > {output_file} 2> {stderr_file}'
     print("the test command is: ", command)
     process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=playground_dir)
     # Check the exit status of the command
