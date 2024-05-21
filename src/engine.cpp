@@ -97,7 +97,7 @@ std::string TicketSystemEngine::Execute(const std::string &command) {
   throw std::invalid_argument("Invalid command.");
 }
 
-std::string TicketSystemEngine::Clean() { return "Clean"; }
+std::string TicketSystemEngine::Clean() { throw std::runtime_error("Command clean is not implemented"); }
 
 std::string TicketSystemEngine::Exit(const std::string &command) {
   command_id_t command_id;

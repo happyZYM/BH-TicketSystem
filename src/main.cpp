@@ -1,7 +1,10 @@
 #include <sockpp/tcp_acceptor.h>
+#include <cassert>
 #include <exception>
 #include "basic_defs.h"
+#ifdef ENABLE_ADVANCED_FEATURE
 #include "dataguard/dataguard.h"
+#endif
 #include "engine.h"
 #include "storage/bpt.hpp"
 const std::string main_version = "0.0.1";
@@ -86,6 +89,7 @@ int main(int argc, char *argv[]) {
   bool is_server = program.is_subcommand_used("server");
   LOG->info("Server mode: {}", is_server);
   try {
+#ifdef ENABLE_ADVANCED_FEATURE
     if (is_server) {
       auto port = server_command.get<int>("--port");
       auto address = server_command.get<std::string>("--address");
@@ -100,6 +104,7 @@ int main(int argc, char *argv[]) {
         LOG->info("successfully bind to address {} port {}", address, port);
       throw std::runtime_error("Server mode not implemented");
     } else {
+#endif
       std::ios::sync_with_stdio(false);
       std::cin.tie(nullptr);
       std::cout.tie(nullptr);
@@ -107,9 +112,10 @@ int main(int argc, char *argv[]) {
       std::string cmd;
       while (std::getline(std::cin, cmd)) {
         std::cout << engine.Execute(cmd) << '\n';
-        std::cout.flush();
       }
+#ifdef ENABLE_ADVANCED_FEATURE
     }
+#endif
   } catch (std::exception &e) {
     LOG->error("Exception: {}", e.what());
     return 1;

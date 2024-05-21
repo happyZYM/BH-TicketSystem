@@ -28,6 +28,10 @@ class DiskMap : public DataDriverBase {
         index_file_path(std::move(index_file_path_)),
         data_file_identifier(std::move(data_file_identifier_)),
         data_file_path(std::move(data_file_path_)) {
+    // if (index_file_path.length() >= 2 && index_file_path[0] == '.' && index_file_path[1] == '/')
+    //   index_file_path = index_file_path.substr(2);
+    // if (data_file_path.length() >= 2 && data_file_path[0] == '.' && data_file_path[1] == '/')
+    //   data_file_path = data_file_path.substr(2);
     index_disk_manager = new DiskManager(index_file_path);
     index_bpm = new BufferPoolManager(100, 5, index_disk_manager);
     indexer = new BPlusTreeIndexer<Key, Compare>(index_bpm);

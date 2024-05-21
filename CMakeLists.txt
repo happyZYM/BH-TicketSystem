@@ -74,18 +74,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(sockpp)
 
-FetchContent_Declare(
-  zstd
-  URL_HASH SHA256=3b1c3b46e416d36931efd34663122d7f51b550c87f74de2d38249516fe7d8be5
-  URL ${CMAKE_SOURCE_DIR}/deps/zstd-v1.5.6-mirror.zip
-  SOURCE_SUBDIR build/cmake
-)
-set(ZSTD_BUILD_SHARED OFF CACHE BOOL "Build shared libraries")
-set(ZSTD_BUILD_DEPRECATED OFF CACHE BOOL "Build deprecated module")
-FetchContent_MakeAvailable(zstd)
+if(ENABLE_ADVANCED_FEATURE)
+  FetchContent_Declare(
+    zstd
+    URL_HASH SHA256=3b1c3b46e416d36931efd34663122d7f51b550c87f74de2d38249516fe7d8be5
+    URL ${CMAKE_SOURCE_DIR}/deps/zstd-v1.5.6-mirror.zip
+    SOURCE_SUBDIR build/cmake
+  )
+  set(ZSTD_BUILD_SHARED OFF CACHE BOOL "Build shared libraries")
+  set(ZSTD_BUILD_DEPRECATED OFF CACHE BOOL "Build deprecated module")
+  FetchContent_MakeAvailable(zstd)
+endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/storage/include)
-include_directories(${CMAKE_SOURCE_DIR}/dataguard/include)
+if(ENABLE_ADVANCED_FEATURE)
+  include_directories(${CMAKE_SOURCE_DIR}/dataguard/include)
+endif()
 include_directories(${CMAKE_SOURCE_DIR}/stlite)
 
 include(CTest)
@@ -93,6 +97,8 @@ enable_testing()
 include(test/ctest_config)
 
 add_subdirectory(storage)
-add_subdirectory(dataguard)
+if(ENABLE_ADVANCED_FEATURE)
+  add_subdirectory(dataguard)
+endif()
 add_subdirectory(test)
 add_subdirectory(src)
