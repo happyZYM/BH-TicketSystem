@@ -1,8 +1,8 @@
-#include <sockpp/tcp_acceptor.h>
 #include <cassert>
 #include <exception>
 #include "basic_defs.h"
 #ifdef ENABLE_ADVANCED_FEATURE
+#include <sockpp/tcp_acceptor.h>
 #include "dataguard/dataguard.h"
 #endif
 #include "engine.h"

@@ -37,6 +37,7 @@ add_definitions(-DZSTD_STATIC_LINKING_ONLY)
 option(ENABLE_ADVANCED_FEATURE "Enable advanced features" OFF)
 option(OJ_TEST_BPT "Enable OJ test for B+ Tree" OFF)
 option(OJ_TEST_BACKEND "Enable OJ test for backend" ON)
+option(ENABLE_TEST_POINTS "Enable test points" OFF)
 
 # 如果 ENABLE_ADVANCED_FEATURE 选项为 ON，则定义 ENABLE_ADVANCED_FEATURE 宏
 if (ENABLE_ADVANCED_FEATURE)
@@ -45,13 +46,15 @@ endif()
 
 include(FetchContent)
 
-FetchContent_Declare(
-  googletest
-  URL_HASH SHA256=1f357c27ca988c3f7c6b4bf68a9395005ac6761f034046e9dde0896e3aba00e4
-  URL ${CMAKE_SOURCE_DIR}/deps/googletest-v1.14.0-mirror.zip
-)
-FetchContent_MakeAvailable(googletest)
-include(GoogleTest)
+if(ENABLE_TEST_POINTS)
+  FetchContent_Declare(
+    googletest
+    URL_HASH SHA256=1f357c27ca988c3f7c6b4bf68a9395005ac6761f034046e9dde0896e3aba00e4
+    URL ${CMAKE_SOURCE_DIR}/deps/googletest-v1.14.0-mirror.zip
+  )
+  FetchContent_MakeAvailable(googletest)
+  include(GoogleTest)
+endif()
 
 FetchContent_Declare(
   argparse
@@ -67,14 +70,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-FetchContent_Declare(
-  sockpp
-  URL_HASH SHA256=d144b3dcc7e9f031a9205395deb334b0b9681e1e7db61c066cca22ec2650a77b
-  URL ${CMAKE_SOURCE_DIR}/deps/sockpp-v1.0.0-mirror.zip
-)
-FetchContent_MakeAvailable(sockpp)
+
 
 if(ENABLE_ADVANCED_FEATURE)
+  FetchContent_Declare(
+    sockpp
+    URL_HASH SHA256=d144b3dcc7e9f031a9205395deb334b0b9681e1e7db61c066cca22ec2650a77b
+    URL ${CMAKE_SOURCE_DIR}/deps/sockpp-v1.0.0-mirror.zip
+  )
+  FetchContent_MakeAvailable(sockpp)
   FetchContent_Declare(
     zstd
     URL_HASH SHA256=3b1c3b46e416d36931efd34663122d7f51b550c87f74de2d38249516fe7d8be5

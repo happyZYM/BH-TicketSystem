@@ -16,14 +16,42 @@ class TicketSystemEngine {
 #endif
   std::string data_directory;
   std::map<hash_t, uint8_t> online_users;
+
+  /**
+   * @brief user data system
+   * @details The database for users.
+   */
   DiskMap<hash_t, FullUserData> user_data;
+
+  /**
+   * @brief train data system
+   */
+  DiskMap<hash_t, StationNameData> full_station_name_data;
+
+  /**
+   * @brief transaction data system
+   * @details This part is responsible for storing:
+   * - Remaining seat numbers: using HashedTrainID + train number as the index, with a B+ tree point to an array
+   * - Stop information: using the station + HashedTrainID as the index, with a B+ tree point to the train's sales start
+   * and end dates, minutes required from the starting station to the current station, and the current station's stop
+   * time
+   * - Order information: using an incrementing, non-repeating uint64_t as the index, with an OrderData attached
+   * - Waiting queue: using the station + HashedTrainID as the index, with a B+ tree point to a LinkedQueue, storing IDs
+   * pointing to order information
+   * - User purchase history: using HashedUserID as the index, with a LinkedStack attached, with a simple skip list-like
+   * optimization, storing IDs pointing to order information
+   */
+  // TODO
+
   void PrepareExit();
 
  public:
   inline TicketSystemEngine(std::string data_directory)
       : data_directory(data_directory),
         user_data("user_data.idx", data_directory + "/user_data.idx", "user_data.val",
-                  data_directory + "/user_data.val") {}
+                  data_directory + "/user_data.val"),
+        full_station_name_data("station_name.idx", data_directory + "/station_name.idx", "station_name.val",
+                               data_directory + "/station_name.val") {}
   std::string Execute(const std::string &command);
 
   // User system
