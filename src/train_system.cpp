@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -94,6 +95,7 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
         command_stream >> saleDate_raw;
         int beg_mm, beg_dd, end_mm, end_dd;
         sscanf(saleDate_raw.c_str(), "%d-%d|%d-%d", &beg_mm, &beg_dd, &end_mm, &end_dd);
+        if (beg_mm < 6 || end_mm > 8) throw std::runtime_error("fatal error: sale date out of range");
         saleDate_begin = GetCompactDate(beg_mm, beg_dd);
         saleDate_end = GetCompactDate(end_mm, end_dd);
         break;
@@ -163,6 +165,14 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
     if (len < 40) station_name_data.name[i][len] = '\0';
   }
   station_name_data_storage.Put(train_id_hash, station_name_data);
+  SeatsData seats_data;
+  for (int i = 0; i < core_train_data.stationNum - 1; i++) {
+    seats_data.seat[i] = core_train_data.seatNum;
+  }
+  int day_count = core_train_data.saleDate_end - core_train_data.saleDate_beg + 1;
+  for (int i = 0; i < day_count; i++) {
+    seats_data_storage.Put(std::make_pair(train_id_hash, i), seats_data);
+  }
   response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }
@@ -183,8 +193,26 @@ std::string TicketSystemEngine::DeleteTrain(const std::string &command) {
       }
     }
   }
-  // TODO
-  response_stream << '[' << command_id << "] DeleteTrain";
+  hash_t train_id_hash = SplitMix64Hash(trainID);
+  CoreTrainData core_train_data;
+  try {
+    core_train_data_storage.Get(train_id_hash, core_train_data);
+    if (core_train_data.is_released == 1) {
+      response_stream << '[' << command_id << "] -1";
+      return response_stream.str();
+    }
+  } catch (std::runtime_error &e) {
+    response_stream << '[' << command_id << "] -1";
+    return response_stream.str();
+  }
+  core_train_data_storage.Remove(train_id_hash);
+  ticket_price_data_storage.Remove(train_id_hash);
+  station_name_data_storage.Remove(train_id_hash);
+  int day_count = core_train_data.saleDate_end - core_train_data.saleDate_beg + 1;
+  for (int i = 0; i < day_count; i++) {
+    seats_data_storage.Remove(std::make_pair(train_id_hash, i));
+  }
+  response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }
 
@@ -204,8 +232,22 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
       }
     }
   }
-  // TODO
-  response_stream << '[' << command_id << "] ReleaseTrain";
+  hash_t train_id_hash = SplitMix64Hash(trainID);
+  CoreTrainData core_train_data;
+  try {
+    core_train_data_storage.Get(train_id_hash, core_train_data);
+    if (core_train_data.is_released == 1) {
+      response_stream << '[' << command_id << "] -1";
+      return response_stream.str();
+    }
+  } catch (std::runtime_error &e) {
+    response_stream << '[' << command_id << "] -1";
+    return response_stream.str();
+  }
+  core_train_data.is_released = 1;
+  core_train_data_storage.Put(train_id_hash, core_train_data);
+  // TODO: update data to transaction system
+  response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }
 
@@ -236,7 +278,66 @@ std::string TicketSystemEngine::QueryTrain(const std::string &command) {
   }
   LOG->debug("trainID: {}", trainID);
   LOG->debug("date: {}={}-{}", date, RetrieveReadableDate(date).first, RetrieveReadableDate(date).second);
-  // TODO
-  response_stream << '[' << command_id << "] QueryTrain";
+  hash_t train_id_hash = SplitMix64Hash(trainID);
+  CoreTrainData core_train_data;
+  try {
+    core_train_data_storage.Get(train_id_hash, core_train_data);
+  } catch (std::runtime_error &e) {
+    response_stream << '[' << command_id << "] -1";
+    return response_stream.str();
+  }
+  if (date < core_train_data.saleDate_beg || date > core_train_data.saleDate_end) {
+    response_stream << '[' << command_id << "] -1";
+    return response_stream.str();
+  }
+  StationNameData station_name_data;
+  station_name_data_storage.Get(train_id_hash, station_name_data);
+  LOG->debug("successfully retrieved station name data");
+  TicketPriceData ticket_price_data;
+  ticket_price_data_storage.Get(train_id_hash, ticket_price_data);
+  LOG->debug("successfully retrieved ticket price data");
+  SeatsData seats_data;
+  seats_data_storage.Get(std::make_pair(train_id_hash, date - core_train_data.saleDate_beg), seats_data);
+  LOG->debug("successfully retrieved seats data");
+  response_stream << '[' << command_id << "] " << trainID << ' ' << char(core_train_data.type + 'A') << '\n';
+  int cur_time = date * 1440 + core_train_data.startTime;
+  int total_price = 0;
+  for (int i = 0; i < core_train_data.stationNum; i++) {
+    for (int j = 0; j < 40 && station_name_data.name[i][j] != '\0'; j++)
+      response_stream << station_name_data.name[i][j];
+    if (i == 0) {
+      response_stream << " xx-xx xx:xx -> ";
+      int month, day, hour, minute;
+      RetrieveReadableTimeStamp(cur_time, month, day, hour, minute);
+      response_stream << std::setw(2) << std::setfill('0') << month << '-' << std::setw(2) << std::setfill('0') << day
+                      << ' ' << std::setw(2) << std::setfill('0') << hour << ':' << std::setw(2) << std::setfill('0')
+                      << minute << ' ';
+      response_stream << total_price << ' ' << seats_data.seat[i];
+    } else if (i < core_train_data.stationNum - 1) {
+      int month, day, hour, minute;
+      RetrieveReadableTimeStamp(cur_time, month, day, hour, minute);
+      response_stream << ' ' << std::setw(2) << std::setfill('0') << month << '-' << std::setw(2) << std::setfill('0')
+                      << day << ' ' << std::setw(2) << std::setfill('0') << hour << ':' << std::setw(2)
+                      << std::setfill('0') << minute << " -> ";
+      cur_time += core_train_data.stopoverTime[i];
+      RetrieveReadableTimeStamp(cur_time, month, day, hour, minute);
+      response_stream << std::setw(2) << std::setfill('0') << month << '-' << std::setw(2) << std::setfill('0') << day
+                      << ' ' << std::setw(2) << std::setfill('0') << hour << ':' << std::setw(2) << std::setfill('0')
+                      << minute << ' ';
+      response_stream << total_price << ' ' << seats_data.seat[i];
+    } else {
+      int month, day, hour, minute;
+      RetrieveReadableTimeStamp(cur_time, month, day, hour, minute);
+      response_stream << ' ' << std::setw(2) << std::setfill('0') << month << '-' << std::setw(2) << std::setfill('0')
+                      << day << ' ' << std::setw(2) << std::setfill('0') << hour << ':' << std::setw(2)
+                      << std::setfill('0') << minute << " -> xx-xx xx:xx ";
+      response_stream << total_price << " x";
+    }
+    if (i != core_train_data.stationNum - 1) {
+      total_price += ticket_price_data.price[i];
+      response_stream << '\n';
+    }
+    cur_time += core_train_data.travelTime[i];
+  }
   return response_stream.str();
 }

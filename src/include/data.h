@@ -31,4 +31,8 @@ struct CoreTrainData {
   uint16_t travelTime[100];
   uint16_t stopoverTime[100];
 };
+
+struct SeatsData {
+  uint32_t seat[99];
+};
 #endif

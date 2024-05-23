@@ -45,6 +45,8 @@ class TicketSystemEngine {
    * optimization, storing IDs pointing to order information
    */
   // TODO
+  typedef std::pair<hash_t, uint8_t> seats_index_t;
+  DiskMap<seats_index_t, SeatsData> seats_data_storage;
 
   void PrepareExit();
 
@@ -59,7 +61,8 @@ class TicketSystemEngine {
         ticket_price_data_storage("ticket_price.idx", data_directory + "/ticket_price.idx", "ticket_price.val",
                                   data_directory + "/ticket_price.val"),
         core_train_data_storage("core_train.idx", data_directory + "/core_train.idx", "core_train.val",
-                                data_directory + "/core_train.val") {}
+                                data_directory + "/core_train.val"),
+        seats_data_storage("seats.idx", data_directory + "/seats.idx", "seats.val", data_directory + "/seats.val") {}
   std::string Execute(const std::string &command);
 
   // User system
