@@ -8,6 +8,7 @@
 #endif
 #include <vector>
 #include "data.h"
+#include "stop_register.hpp"
 #include "storage/disk_map.hpp"
 #include "utils.h"
 class TicketSystemEngine {
@@ -30,11 +31,12 @@ class TicketSystemEngine {
   DiskMap<hash_t, StationNameData> station_name_data_storage;
   DiskMap<hash_t, TicketPriceData> ticket_price_data_storage;
   DiskMap<hash_t, CoreTrainData> core_train_data_storage;
+  typedef std::pair<hash_t, uint8_t> seats_index_t;
+  DiskMap<seats_index_t, SeatsData> seats_data_storage;
 
   /**
    * @brief transaction data system
    * @details This part is responsible for storing:
-   * - Remaining seat numbers: using HashedTrainID + train number as the index, with a B+ tree point to an array
    * - Stop information: using the station + HashedTrainID as the index, with a B+ tree point to the train's sales start
    * and end dates, minutes required from the starting station to the current station, and the current station's stop
    * time
@@ -44,9 +46,7 @@ class TicketSystemEngine {
    * - User purchase history: using HashedUserID as the index, with a LinkedStack attached, with a simple skip list-like
    * optimization, storing IDs pointing to order information
    */
-  // TODO
-  typedef std::pair<hash_t, uint8_t> seats_index_t;
-  DiskMap<seats_index_t, SeatsData> seats_data_storage;
+  StopRegister stop_register;
 
   void PrepareExit();
 
@@ -62,7 +62,8 @@ class TicketSystemEngine {
                                   data_directory + "/ticket_price.val"),
         core_train_data_storage("core_train.idx", data_directory + "/core_train.idx", "core_train.val",
                                 data_directory + "/core_train.val"),
-        seats_data_storage("seats.idx", data_directory + "/seats.idx", "seats.val", data_directory + "/seats.val") {}
+        seats_data_storage("seats.idx", data_directory + "/seats.idx", "seats.val", data_directory + "/seats.val"),
+        stop_register("stop_register.idx", data_directory + "/stop_register.idx") {}
   std::string Execute(const std::string &command);
 
   // User system

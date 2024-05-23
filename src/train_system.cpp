@@ -247,6 +247,21 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
   core_train_data.is_released = 1;
   core_train_data_storage.Put(train_id_hash, core_train_data);
   // TODO: update data to transaction system
+  int vis_time_offset = 0;
+  for (int i = 0; i < core_train_data.stationNum; i++) {
+    uint16_t arrive_time_offset = -1;
+    uint16_t leave_time_offset = -1;
+    if (i != 0) {
+      vis_time_offset += core_train_data.travelTime[i - 1];
+      arrive_time_offset = vis_time_offset;
+    }
+    if (i != core_train_data.stationNum - 1) {
+      if (i != 0) vis_time_offset += core_train_data.stopoverTime[i];
+      leave_time_offset = vis_time_offset;
+    }
+    stop_register.AddStopInfo(core_train_data.stations_hash[i], train_id_hash, core_train_data.saleDate_beg,
+                              core_train_data.saleDate_end, arrive_time_offset, leave_time_offset);
+  }
   response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }
