@@ -23,7 +23,9 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
       case 'd': {
         std::string date_raw;
         command_stream >> date_raw;
-        // TODO: parse date
+        int mm, dd;
+        sscanf(date_raw.c_str(), "%d-%d", &mm, &dd);
+        date = GetCompactDate(mm, dd);
         break;
       }
       case 's': {
@@ -43,6 +45,9 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
       }
     }
   }
+  LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
+             RetrieveReadableDate(date).second, from, to, order_by);
+  // TODO
   response_stream << "[" << command_id << "] QueryTicket";
   return response_stream.str();
 }
@@ -62,7 +67,9 @@ std::string TicketSystemEngine::QueryTransfer(const std::string &command) {
       case 'd': {
         std::string date_raw;
         command_stream >> date_raw;
-        // TODO: parse date
+        int mm, dd;
+        sscanf(date_raw.c_str(), "%d-%d", &mm, &dd);
+        date = GetCompactDate(mm, dd);
         break;
       }
       case 's': {
@@ -82,6 +89,9 @@ std::string TicketSystemEngine::QueryTransfer(const std::string &command) {
       }
     }
   }
+  LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
+             RetrieveReadableDate(date).second, from, to, order_by);
+  // TODO
   response_stream << "[" << command_id << "] QueryTransfer";
   return response_stream.str();
 }
@@ -112,7 +122,9 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
       case 'd': {
         std::string date_raw;
         command_stream >> date_raw;
-        // TODO: parse date
+        int mm, dd;
+        sscanf(date_raw.c_str(), "%d-%d", &mm, &dd);
+        date = GetCompactDate(mm, dd);
         break;
       }
       case 'f': {
@@ -133,6 +145,10 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
       }
     }
   }
+  LOG->debug("user {}, train {}, date {}={}-{}, from {}, to {}, ticket num {}, accept queue {}", user_name, train_id,
+             date, RetrieveReadableDate(date).first, RetrieveReadableDate(date).second, from, to, ticket_num,
+             accept_queue);
+  // TODO
   response_stream << "[" << command_id << "] BuyTicket";
   return response_stream.str();
 }

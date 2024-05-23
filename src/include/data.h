@@ -29,7 +29,7 @@ struct FullTrainData {
   StationData stations[100];
 };
 
-class TrainDataDrive: public DataDriverBase {
+class TrainDataDrive : public DataDriverBase {};
 
-};
+class TransactionDataDrive : public DataDriverBase {};
 #endif

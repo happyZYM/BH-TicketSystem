@@ -24,6 +24,7 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
   char type[2];
   command_stream >> token >> token;
   while (command_stream >> token) {
+    LOG->debug("token: {}", token);
     switch (token[1]) {
       case 'i': {
         command_stream >> trainID;
@@ -40,43 +41,96 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
       case 's': {
         std::string station_raw;
         command_stream >> station_raw;
-        // TODO
+        std::stringstream station_raw_stream(station_raw);
+        // the sperator is '|' in the raw string
+        for (int i = 0; i < stationNum; i++) {
+          std::getline(station_raw_stream, stations[i], '|');
+        }
         break;
       }
       case 'p': {
         std::string price_raw;
         command_stream >> price_raw;
-        // TODO
+        std::stringstream price_raw_stream(price_raw);
+        for (int i = 0; i < stationNum - 1; i++) {
+          std::string tmp;
+          std::getline(price_raw_stream, tmp, '|');
+          sscanf(tmp.c_str(), "%d", &prices[i]);
+        }
         break;
       }
       case 'x': {
-        command_stream >> startTime;
+        std::string startTime_raw;
+        command_stream >> startTime_raw;
+        int hh, mm;
+        sscanf(startTime_raw.c_str(), "%d:%d", &hh, &mm);
+        startTime = hh * 60 + mm;
         break;
       }
       case 't': {
         std::string travelTime_raw;
         command_stream >> travelTime_raw;
-        // TODO
+        std::stringstream travelTime_raw_stream(travelTime_raw);
+        for (int i = 0; i < stationNum - 1; i++) {
+          std::string tmp;
+          std::getline(travelTime_raw_stream, tmp, '|');
+          sscanf(tmp.c_str(), "%d", &travelTimes[i]);
+        }
         break;
       }
       case 'o': {
         std::string stopoverTime_raw;
         command_stream >> stopoverTime_raw;
-        // TODO
+        std::stringstream stopoverTime_raw_stream(stopoverTime_raw);
+        for (int i = 1; i < stationNum - 1; i++) {
+          std::string tmp;
+          std::getline(stopoverTime_raw_stream, tmp);
+          sscanf(tmp.c_str(), "%d", &stopoverTimes[i]);
+        }
         break;
       }
       case 'd': {
         std::string saleDate_raw;
         command_stream >> saleDate_raw;
-        // TODO
+        int beg_mm, beg_dd, end_mm, end_dd;
+        sscanf(saleDate_raw.c_str(), "%d-%d|%d-%d", &beg_mm, &beg_dd, &end_mm, &end_dd);
+        saleDate_begin = GetCompactDate(beg_mm, beg_dd);
+        saleDate_end = GetCompactDate(end_mm, end_dd);
         break;
       }
       case 'y': {
         command_stream >> type;
         break;
       }
+      default: {
+        throw std::runtime_error("fatal error: unknown token");
+      }
     }
   }
+  LOG->debug("trainID: {}", trainID);
+  LOG->debug("stationNum: {}", stationNum);
+  LOG->debug("seatNum: {}", seatNum);
+  LOG->debug("stations:");
+  for (int i = 0; i < stationNum; i++) {
+    LOG->debug("{} {}", i, stations[i]);
+  }
+  LOG->debug("prices:");
+  for (int i = 0; i < stationNum - 1; i++) {
+    LOG->debug("{} {}", i, prices[i]);
+  }
+  LOG->debug("startTime: {}={}:{}", startTime, startTime / 60, startTime % 60);
+  LOG->debug("travelTimes:");
+  for (int i = 0; i < stationNum - 1; i++) {
+    LOG->debug("{} {}", i, travelTimes[i]);
+  }
+  LOG->debug("stopoverTimes:");
+  for (int i = 1; i < stationNum - 1; i++) {
+    LOG->debug("{} {}", i, stopoverTimes[i]);
+  }
+  LOG->debug("saleDate: from {}={}-{} to {}={}-{}", saleDate_begin, RetrieveReadableDate(saleDate_begin).first,
+             RetrieveReadableDate(saleDate_begin).second, saleDate_end, RetrieveReadableDate(saleDate_end).first,
+             RetrieveReadableDate(saleDate_end).second);
+  LOG->debug("type: {}", type);
   response_stream << '[' << command_id << "] AddTrain";
   return response_stream.str();
 }
@@ -97,6 +151,7 @@ std::string TicketSystemEngine::DeleteTrain(const std::string &command) {
       }
     }
   }
+  // TODO
   response_stream << '[' << command_id << "] DeleteTrain";
   return response_stream.str();
 }
@@ -117,6 +172,7 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
       }
     }
   }
+  // TODO
   response_stream << '[' << command_id << "] ReleaseTrain";
   return response_stream.str();
 }
@@ -139,11 +195,16 @@ std::string TicketSystemEngine::QueryTrain(const std::string &command) {
       case 'd': {
         std::string date_raw;
         command_stream >> date_raw;
-        // TODO
+        int mm, dd;
+        sscanf(date_raw.c_str(), "%d-%d", &mm, &dd);
+        date = GetCompactDate(mm, dd);
         break;
       }
     }
   }
+  LOG->debug("trainID: {}", trainID);
+  LOG->debug("date: {}={}-{}", date, RetrieveReadableDate(date).first, RetrieveReadableDate(date).second);
+  // TODO
   response_stream << '[' << command_id << "] QueryTrain";
   return response_stream.str();
 }

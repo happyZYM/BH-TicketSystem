@@ -26,27 +26,27 @@ class TicketSystemEngine {
                   data_directory + "/user_data.val") {}
   std::string Execute(const std::string &command);
 
-  // 用户相关函数
+  // User system
   std::string AddUser(const std::string &command);
   std::string LoginUser(const std::string &command);
   std::string LogoutUser(const std::string &command);
   std::string QueryProfile(const std::string &command);
   std::string ModifyProfile(const std::string &command);
 
-  // 车次相关函数
+  // Train System
   std::string AddTrain(const std::string &command);
   std::string DeleteTrain(const std::string &command);
   std::string ReleaseTrain(const std::string &command);
   std::string QueryTrain(const std::string &command);
 
-  // 订单相关函数
+  // Transaction System
   std::string BuyTicket(const std::string &command);
   std::string QueryOrder(const std::string &command);
   std::string RefundTicket(const std::string &command);
-
-  // 其他函数
   std::string QueryTransfer(const std::string &command);
   std::string QueryTicket(const std::string &command);
+
+  // Other functions
   std::string Clean();
   std::string Exit(const std::string &command);
 };
