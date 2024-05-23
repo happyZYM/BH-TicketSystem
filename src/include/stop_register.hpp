@@ -1,14 +1,26 @@
 #ifndef STOP_REGISTER_HPP
 #define STOP_REGISTER_HPP
+#include <cstdint>
 #include <vector>
 #include "basic_defs.h"
 #include "data.h"
 #include "storage/bpt.hpp"
 #include "storage/buffer_pool_manager.h"
 #include "storage/driver.h"
-typedef std::pair<hash_t, hash_t> stop_register_t;  // The first is station hash, the second is train hash
+struct stop_register_t {
+  hash_t station_ID_hash;
+  hash_t train_ID_hash;
+  uint16_t type : 1;
+  uint16_t startTime : 12;
+};
+inline bool operator<(const stop_register_t &A, const stop_register_t &B) {
+  if (A.station_ID_hash != B.station_ID_hash) return A.station_ID_hash < B.station_ID_hash;
+  if (A.train_ID_hash != B.train_ID_hash) return A.train_ID_hash < B.train_ID_hash;
+  if (A.type != B.type) return A.type < B.type;
+  return A.startTime < B.startTime;
+}
 struct MinimalTrainRecord {
-  uint16_t saleDate_beg : 7, saleDate_end : 7, vis_time_offset : 13, type : 1;
+  uint16_t saleDate_beg : 8, saleDate_end : 8, vis_time_offset : 14;
 };
 static_assert(sizeof(MinimalTrainRecord) == sizeof(default_numeric_index_t));
 
@@ -20,6 +32,12 @@ class StopRegister : public DataDriverBase {
   BPlusTreeIndexer<stop_register_t, std::less<stop_register_t>> *bpt_indexer;
 
  public:
+  struct DirectTrainInfo {
+    hash_t train_ID_hash;
+    int actual_start_date;
+    int leave_time_stamp;
+    int arrive_time_stamp;
+  };
   // for satety, all the copy/move operations are deleted, please manage it using pointer
   StopRegister &operator=(const StopRegister &) = delete;
   StopRegister(const StopRegister &) = delete;
@@ -54,30 +72,66 @@ class StopRegister : public DataDriverBase {
     bpt_indexer->Flush();
   }
   inline void AddStopInfo(hash_t station_hash, hash_t train_hash, uint16_t true_saleDate_beg,
-                          uint16_t true_saleDate_end, uint16_t arrive_time_offset, uint16_t leave_time_offset) {
+                          uint16_t true_saleDate_end, uint16_t startTime, uint16_t arrive_time_offset,
+                          uint16_t leave_time_offset) {
     MinimalTrainRecord record_arrive, record_leave;
     const static int June_1st_2024 = 152;
     record_arrive.saleDate_beg = true_saleDate_beg - June_1st_2024;
     record_arrive.saleDate_end = true_saleDate_end - June_1st_2024;
     record_arrive.vis_time_offset = arrive_time_offset;
-    record_arrive.type = 0;
     record_leave.saleDate_beg = true_saleDate_beg - June_1st_2024;
     record_leave.saleDate_end = true_saleDate_end - June_1st_2024;
     record_leave.vis_time_offset = leave_time_offset;
-    record_leave.type = 1;
     if (arrive_time_offset != uint16_t(-1))
-      bpt_indexer->Put({station_hash, train_hash}, *reinterpret_cast<default_numeric_index_t *>(&record_arrive));
+      bpt_indexer->Put({station_hash, train_hash, 0, startTime},
+                       *reinterpret_cast<default_numeric_index_t *>(&record_arrive));
     if (leave_time_offset != uint16_t(-1))
-      bpt_indexer->Put({station_hash, train_hash}, *reinterpret_cast<default_numeric_index_t *>(&record_leave));
+      bpt_indexer->Put({station_hash, train_hash, 1, startTime},
+                       *reinterpret_cast<default_numeric_index_t *>(&record_leave));
   }
-  inline void GetShareItems(std::vector<hash_t> &A, std::vector<hash_t> &B, std::vector<hash_t> &res) {
-    // TODO
-  }
-  inline void QueryDirectTrains(uint32_t date, hash_t from_station_ID, hash_t to_station_ID, std::vector<hash_t> &res) {
-    std::vector<hash_t> valid_trains_pass_from, valid_trains_pass_to;
-    res.clear();
-    // TODO
-    GetShareItems(valid_trains_pass_from, valid_trains_pass_to, res);
+  inline void QueryDirectTrains(uint32_t date, hash_t from_station_ID, hash_t to_station_ID,
+                                std::vector<StopRegister::DirectTrainInfo> &res) {
+    const static int June_1st_2024 = 152;
+    auto it_from = bpt_indexer->lower_bound_const({from_station_ID, 0});
+    auto it_to = bpt_indexer->lower_bound_const({to_station_ID, 0});
+    while (it_from != bpt_indexer->end_const()) {
+      const auto &key_from = it_from.GetKey();
+      const auto &value_from = it_from.GetValue();
+      if (key_from.station_ID_hash != from_station_ID) break;
+      if (key_from.type != 1) {
+        ++it_from;
+        continue;
+      }
+      int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
+      int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
+      int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
+      int startTime = key_from.startTime;
+      int actual_time = startTime + leave_time_offset;
+      int delta_days = actual_time / 1440;
+      if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) continue;
+      StopRegister::DirectTrainInfo entry;
+      entry.train_ID_hash = key_from.train_ID_hash;
+      entry.actual_start_date = date - delta_days;
+      entry.leave_time_stamp = true_saleDate_beg * 1440 + actual_time;
+      while (it_to != bpt_indexer->end_const()) {
+        const auto &key_to = it_to.GetKey();
+        const auto &value_to = it_to.GetValue();
+        if (key_to.station_ID_hash != to_station_ID) break;
+        if (key_to.type != 0) {
+          ++it_to;
+          continue;
+        }
+        if (key_to.train_ID_hash > key_from.train_ID_hash) break;
+        if (key_to.train_ID_hash == key_from.train_ID_hash) {
+          entry.arrive_time_stamp = true_saleDate_beg * 1440 + startTime +
+                                    (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset;
+          ++it_to;
+          break;
+        }
+        ++it_to;
+      }
+      ++it_from;
+    }
   }
 };
 

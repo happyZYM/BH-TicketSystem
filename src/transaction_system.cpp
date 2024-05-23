@@ -48,6 +48,14 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
   LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
              RetrieveReadableDate(date).second, from, to, order_by);
   // TODO
+  hash_t from_hash = SplitMix64Hash(from), to_hash = SplitMix64Hash(to);
+  std::vector<StopRegister::DirectTrainInfo> valid_trains;
+  stop_register.QueryDirectTrains(date, from_hash, to_hash, valid_trains);
+  std::vector<std::pair<StopRegister::DirectTrainInfo, AdditionalTrainInfo>> valid_trains_full;
+  size_t len = valid_trains.size();
+  for (size_t i = 0; i < len; i++) {
+    valid_trains_full[i].first = valid_trains[i];
+  }
   response_stream << "[" << command_id << "] QueryTicket";
   return response_stream.str();
 }

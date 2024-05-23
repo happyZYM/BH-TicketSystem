@@ -16,7 +16,14 @@ struct StationNameData {
 };
 static_assert(sizeof(StationNameData) == 4000);
 struct TicketPriceData {
+  char trainID[21];
   uint32_t price[99];
+};
+
+struct AdditionalTrainInfo {
+  char trainID[21];
+  int price;
+  int seats;
 };
 
 struct CoreTrainData {

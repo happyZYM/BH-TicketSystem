@@ -140,6 +140,7 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
   }
   TicketPriceData ticket_price_data;
   for (int i = 0; i < stationNum - 1; i++) ticket_price_data.price[i] = prices[i];
+  strcpy(ticket_price_data.trainID, trainID.c_str());
   ticket_price_data_storage.Put(train_id_hash, ticket_price_data);
   CoreTrainData core_train_data;
   core_train_data.is_released = 0;
@@ -260,7 +261,8 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
       leave_time_offset = vis_time_offset;
     }
     stop_register.AddStopInfo(core_train_data.stations_hash[i], train_id_hash, core_train_data.saleDate_beg,
-                              core_train_data.saleDate_end, arrive_time_offset, leave_time_offset);
+                              core_train_data.saleDate_end, core_train_data.startTime, arrive_time_offset,
+                              leave_time_offset);
   }
   response_stream << '[' << command_id << "] 0";
   return response_stream.str();
