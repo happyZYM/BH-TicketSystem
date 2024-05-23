@@ -131,7 +131,39 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
              RetrieveReadableDate(saleDate_begin).second, saleDate_end, RetrieveReadableDate(saleDate_end).first,
              RetrieveReadableDate(saleDate_end).second);
   LOG->debug("type: {}", type);
-  response_stream << '[' << command_id << "] AddTrain";
+  hash_t train_id_hash = SplitMix64Hash(trainID);
+  if (ticket_price_data_storage.HasKey(train_id_hash)) {
+    response_stream << '[' << command_id << "] -1";
+    return response_stream.str();
+  }
+  TicketPriceData ticket_price_data;
+  for (int i = 0; i < stationNum - 1; i++) ticket_price_data.price[i] = prices[i];
+  ticket_price_data_storage.Put(train_id_hash, ticket_price_data);
+  CoreTrainData core_train_data;
+  core_train_data.is_released = 0;
+  strcpy(core_train_data.trainID, trainID.c_str());
+  core_train_data.stationNum = stationNum;
+  for (int i = 0; i < stationNum; i++) {
+    core_train_data.stations_hash[i] = SplitMix64Hash(stations[i]);
+  }
+  core_train_data.seatNum = seatNum;
+  core_train_data.startTime = startTime;
+  for (int i = 0; i < stationNum - 1; i++) {
+    core_train_data.travelTime[i] = travelTimes[i];
+    core_train_data.stopoverTime[i] = stopoverTimes[i];
+  }
+  core_train_data.saleDate_beg = saleDate_begin;
+  core_train_data.saleDate_end = saleDate_end;
+  core_train_data.type = type[0] - 'A';
+  core_train_data_storage.Put(train_id_hash, core_train_data);
+  StationNameData station_name_data;
+  for (int i = 0; i < stationNum; i++) {
+    size_t len = stations[i].length();
+    for (int j = 0; j < len; j++) station_name_data.name[i][j] = stations[i][j];
+    if (len < 40) station_name_data.name[i][len] = '\0';
+  }
+  station_name_data_storage.Put(train_id_hash, station_name_data);
+  response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }
 

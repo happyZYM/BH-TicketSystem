@@ -38,10 +38,14 @@ option(ENABLE_ADVANCED_FEATURE "Enable advanced features" OFF)
 option(OJ_TEST_BPT "Enable OJ test for B+ Tree" OFF)
 option(OJ_TEST_BACKEND "Enable OJ test for backend" ON)
 option(ENABLE_TEST_POINTS "Enable test points" OFF)
+option(DISABLE_COUT_CACHE "Disable the cache of std::cout" OFF)
 
 # 如果 ENABLE_ADVANCED_FEATURE 选项为 ON，则定义 ENABLE_ADVANCED_FEATURE 宏
 if (ENABLE_ADVANCED_FEATURE)
-    add_definitions(-DENABLE_ADVANCED_FEATURE)
+  add_definitions(-DENABLE_ADVANCED_FEATURE)
+endif()
+if (DISABLE_COUT_CACHE)
+  add_definitions(-DDISABLE_COUT_CACHE)
 endif()
 
 include(FetchContent)

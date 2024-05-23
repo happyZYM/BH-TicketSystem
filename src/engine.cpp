@@ -105,6 +105,7 @@ std::string TicketSystemEngine::Exit(const std::string &command) {
   LOG->debug("command id: {}", command_id);
   std::stringstream response_stream;
   response_stream << '[' << command_id << "] bye";
+  its_time_to_exit = true;
   return response_stream.str();
 }
 

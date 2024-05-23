@@ -15,9 +15,11 @@ struct StationNameData {
   char name[100][40];
 };
 static_assert(sizeof(StationNameData) == 4000);
+struct TicketPriceData {
+  uint32_t price[99];
+};
 
-// waring: this struct is extremely large, later DiskManager should be optimized to handle this
-struct FullTrainData {
+struct CoreTrainData {
   char trainID[21];
   uint8_t stationNum;
   hash_t stations_hash[100];
@@ -25,12 +27,8 @@ struct FullTrainData {
   uint16_t startTime : 12;
   uint16_t saleDate_beg : 10, saleDate_end : 10;
   uint8_t type : 6;
+  uint8_t is_released : 1;
   uint16_t travelTime[100];
   uint16_t stopoverTime[100];
 };
-struct TicketPriceData {};
-
-class TrainDataDrive : public DataDriverBase {};
-
-class TransactionDataDrive : public DataDriverBase {};
 #endif

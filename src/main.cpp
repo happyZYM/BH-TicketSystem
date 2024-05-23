@@ -112,6 +112,10 @@ int main(int argc, char *argv[]) {
       std::string cmd;
       while (std::getline(std::cin, cmd)) {
         std::cout << engine.Execute(cmd) << '\n';
+#ifdef DISABLE_COUT_CACHE
+        std::cout.flush();
+#endif
+        if (*engine.its_time_to_exit_ptr) break;
       }
 #ifdef ENABLE_ADVANCED_FEATURE
     }

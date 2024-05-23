@@ -14,6 +14,7 @@ class TicketSystemEngine {
 #ifdef ENABLE_ADVANCED_FEATURE
   SnapShotManager snapshot_manager;
 #endif
+  bool its_time_to_exit = false;
   std::string data_directory;
   std::map<hash_t, uint8_t> online_users;
 
@@ -26,7 +27,9 @@ class TicketSystemEngine {
   /**
    * @brief train data system
    */
-  DiskMap<hash_t, StationNameData> full_station_name_data;
+  DiskMap<hash_t, StationNameData> station_name_data_storage;
+  DiskMap<hash_t, TicketPriceData> ticket_price_data_storage;
+  DiskMap<hash_t, CoreTrainData> core_train_data_storage;
 
   /**
    * @brief transaction data system
@@ -46,12 +49,17 @@ class TicketSystemEngine {
   void PrepareExit();
 
  public:
+  const bool *its_time_to_exit_ptr = &its_time_to_exit;
   inline TicketSystemEngine(std::string data_directory)
       : data_directory(data_directory),
         user_data("user_data.idx", data_directory + "/user_data.idx", "user_data.val",
                   data_directory + "/user_data.val"),
-        full_station_name_data("station_name.idx", data_directory + "/station_name.idx", "station_name.val",
-                               data_directory + "/station_name.val") {}
+        station_name_data_storage("station_name.idx", data_directory + "/station_name.idx", "station_name.val",
+                                  data_directory + "/station_name.val"),
+        ticket_price_data_storage("ticket_price.idx", data_directory + "/ticket_price.idx", "ticket_price.val",
+                                  data_directory + "/ticket_price.val"),
+        core_train_data_storage("core_train.idx", data_directory + "/core_train.idx", "core_train.val",
+                                data_directory + "/core_train.val") {}
   std::string Execute(const std::string &command);
 
   // User system
