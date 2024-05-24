@@ -20,6 +20,9 @@ struct TransactionData {
   uint32_t arrive_time_stamp;
   uint32_t num;
   uint64_t total_price;
+  uint8_t running_date_offset;
+  uint8_t from_stop_id;
+  uint8_t to_stop_id;
 };
 class TransactionManager : public DataDriverBase {
   struct queue_index_t {
@@ -146,7 +149,7 @@ class TransactionManager : public DataDriverBase {
   }
   inline void AddOrder(std::string trainID, std::string from_station_name, std::string to_station_name, uint8_t status,
                        uint32_t leave_time_stamp, uint32_t arrive_time_stamp, uint32_t num, uint64_t total_price,
-                       uint8_t running_date_offset, std::string username) {
+                       uint8_t running_date_offset, std::string username, uint8_t from_stop_id, uint8_t to_stop_id) {
     TransactionData tmp;
     strcpy(tmp.trainID, trainID.c_str());
     strcpy(tmp.from_station_name, from_station_name.c_str());
@@ -156,6 +159,9 @@ class TransactionManager : public DataDriverBase {
     tmp.arrive_time_stamp = arrive_time_stamp;
     tmp.num = num;
     tmp.total_price = total_price;
+    tmp.running_date_offset = running_date_offset;
+    tmp.from_stop_id = from_stop_id;
+    tmp.to_stop_id = to_stop_id;
     b_plus_tree_value_index_t data_id = data_storage->write(tmp);
     hash_t train_ID_hash = SplitMix64Hash(trainID);
     hash_t user_ID_hash = SplitMix64Hash(username);
@@ -247,6 +253,11 @@ class TransactionManager : public DataDriverBase {
     // warning: the validity of idx is not checked
     LOG->debug("fetching transaction data with idx {}", idx);
     data_storage->read(data, idx);
+  }
+  inline void UpdateTransactionData(b_plus_tree_value_index_t idx, TransactionData &data) {
+    // warning: the validity of idx is not checked
+    LOG->debug("updating transaction data with idx {}", idx);
+    data_storage->update(data, idx);
   }
 };
 #endif

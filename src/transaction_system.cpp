@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
@@ -257,13 +258,14 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
     }
     transaction_manager.AddOrder(train_id, from, to, 0, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
                                  total_price * (unsigned long long)ticket_num,
-                                 info.actual_start_date - info.saleDate_beg, user_name);
+                                 info.actual_start_date - info.saleDate_beg, user_name, info.from_stop_id,
+                                 info.to_stop_id);
     response_stream << "[" << command_id << "] queue";
     return response_stream.str();
   }
   transaction_manager.AddOrder(train_id, from, to, 1, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
                                total_price * (unsigned long long)ticket_num, info.actual_start_date - info.saleDate_beg,
-                               user_name);
+                               user_name, info.from_stop_id, info.to_stop_id);
   for (int j = from_station_id; j < to_station_id; j++) {
     seats_data.seat[j] -= ticket_num;
   }
@@ -350,6 +352,61 @@ std::string TicketSystemEngine::RefundTicket(const std::string &command) {
   if (online_users.find(user_ID_hash) == online_users.end()) {
     response_stream << "[" << command_id << "] -1";
     return response_stream.str();
+  }
+  b_plus_tree_value_index_t idx;
+  bool success = false;
+  idx = transaction_manager.FetchSingleUserOrderHistory(user_ID_hash, order, success);
+  if (!success) {
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
+  TransactionData txn_data;
+  transaction_manager.FetchTransactionData(idx, txn_data);
+  if (txn_data.status == 2) {
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
+  if (txn_data.status == 0) {
+    txn_data.status = 2;
+    transaction_manager.UpdateTransactionData(idx, txn_data);
+    // warning: the record in the queue is not deleted
+    response_stream << "[" << command_id << "] 0";
+    return response_stream.str();
+  }
+  txn_data.status = 2;
+  transaction_manager.UpdateTransactionData(idx, txn_data);
+  hash_t train_ID_hash = SplitMix64Hash(std::string_view(txn_data.trainID));
+  hash_t from_station_hash = SplitMix64Hash(std::string_view(txn_data.from_station_name));
+  hash_t to_station_hash = SplitMix64Hash(std::string_view(txn_data.to_station_name));
+  SeatsData seats_data;
+  seats_data_storage.Get({train_ID_hash, txn_data.running_date_offset}, seats_data);
+  for (int i = txn_data.from_stop_id; i < txn_data.to_stop_id; i++) {
+    seats_data.seat[i] += txn_data.num;
+  }
+  seats_data_storage.Put({train_ID_hash, txn_data.running_date_offset}, seats_data);
+  std::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> queue_idxs;
+  transaction_manager.FetchQueue(train_ID_hash, txn_data.running_date_offset, queue_idxs);
+  size_t len = queue_idxs.size();
+  for (size_t i = 0; i < len; i++) {
+    TransactionData cur_txn_data;
+    transaction_manager.FetchTransactionData(queue_idxs[i].first, cur_txn_data);
+    if (cur_txn_data.status != 0) {
+      transaction_manager.RemoveOrderFromQueue(train_ID_hash, txn_data.running_date_offset, queue_idxs[i].second);
+      continue;
+    }
+    int available_seats = seats_data.seat[cur_txn_data.from_stop_id];
+    for (size_t j = cur_txn_data.from_stop_id + 1; j < cur_txn_data.to_stop_id; j++) {
+      available_seats = std::min(available_seats, (int)seats_data.seat[j]);
+    }
+    if (available_seats >= cur_txn_data.num) {
+      cur_txn_data.status = 1;
+      transaction_manager.UpdateTransactionData(queue_idxs[i].first, cur_txn_data);
+      for (int j = cur_txn_data.from_stop_id; j < cur_txn_data.to_stop_id; j++) {
+        seats_data.seat[j] -= cur_txn_data.num;
+      }
+      seats_data_storage.Put({train_ID_hash, txn_data.running_date_offset}, seats_data);
+      transaction_manager.RemoveOrderFromQueue(train_ID_hash, txn_data.running_date_offset, queue_idxs[i].second);
+    }
   }
   response_stream << "[" << command_id << "] 0";
   return response_stream.str();
