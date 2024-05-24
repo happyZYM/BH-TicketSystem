@@ -10,6 +10,7 @@
 #include "data.h"
 #include "stop_register.hpp"
 #include "storage/disk_map.hpp"
+#include "transaction_mainenance.hpp"
 #include "utils.h"
 class TicketSystemEngine {
 #ifdef ENABLE_ADVANCED_FEATURE
@@ -47,6 +48,7 @@ class TicketSystemEngine {
    * optimization, storing IDs pointing to order information
    */
   StopRegister stop_register;
+  TransactionManager transaction_manager;
 
   void PrepareExit();
 
@@ -63,7 +65,9 @@ class TicketSystemEngine {
         core_train_data_storage("core_train.idx", data_directory + "/core_train.idx", "core_train.val",
                                 data_directory + "/core_train.val"),
         seats_data_storage("seats.idx", data_directory + "/seats.idx", "seats.val", data_directory + "/seats.val"),
-        stop_register("stop_register.idx", data_directory + "/stop_register.idx") {}
+        stop_register("stop_register.idx", data_directory + "/stop_register.idx"),
+        transaction_manager("txn.data", data_directory + "/txn.data", "queue.idx", data_directory + "/queue.idx",
+                            "order.idx", data_directory + "/order.idx") {}
   std::string Execute(const std::string &command);
 
   // User system

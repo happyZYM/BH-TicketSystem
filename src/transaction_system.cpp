@@ -48,7 +48,6 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
   }
   LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
              RetrieveReadableDate(date).second, from, to, order_by);
-  // TODO
   hash_t from_hash = SplitMix64Hash(from), to_hash = SplitMix64Hash(to);
   std::vector<StopRegister::DirectTrainInfo> valid_trains;
   stop_register.QueryDirectTrains(date, from_hash, to_hash, valid_trains);
@@ -219,7 +218,11 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
   LOG->debug("user {}, train {}, date {}={}-{}, from {}, to {}, ticket num {}, accept queue {}", user_name, train_id,
              date, RetrieveReadableDate(date).first, RetrieveReadableDate(date).second, from, to, ticket_num,
              accept_queue);
-  // TODO
+  hash_t user_ID_hash = SplitMix64Hash(user_name);
+  if (online_users.find(user_ID_hash) == online_users.end()) {
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
   response_stream << "[" << command_id << "] BuyTicket";
   return response_stream.str();
 }

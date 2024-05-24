@@ -7,6 +7,7 @@
 #include "storage/bpt.hpp"
 #include "storage/buffer_pool_manager.h"
 #include "storage/driver.h"
+#include "utils.h"
 struct stop_register_t {
   hash_t station_ID_hash;
   hash_t train_ID_hash;
@@ -154,6 +155,46 @@ class StopRegister : public DataDriverBase {
       }
       ++it_from;
     }
+  }
+  inline StopRegister::DirectTrainInfo RequestSingleTrain(hash_t train_ID_hash, int date, hash_t from_station_hash,
+                                                          hash_t to_station_hash, bool &success) {
+    const static int June_1st_2024 = 152;
+    auto it_from = bpt_indexer->lower_bound_const({from_station_hash, train_ID_hash, 1});
+    auto it_to = bpt_indexer->lower_bound_const({to_station_hash, train_ID_hash, 0});
+    if (it_from == bpt_indexer->end_const() || it_to == bpt_indexer->end_const()) {
+      success = false;
+      return {};
+    }
+    const auto &key_from = it_from.GetKey();
+    const auto &key_to = it_to.GetKey();
+    if (key_from.train_ID_hash != train_ID_hash || key_to.train_ID_hash != train_ID_hash ||
+        key_from.station_ID_hash != from_station_hash || key_to.station_ID_hash != to_station_hash ||
+        key_from.type != 1 || key_to.type != 0) {
+      success = false;
+      return {};
+    }
+    const auto &value_from = it_from.GetValue();
+    const auto &value_to = it_to.GetValue();
+    int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
+    int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
+    int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
+    int startTime = key_from.startTime;
+    int actual_time = startTime + leave_time_offset;
+    int delta_days = actual_time / 1440;
+    if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) {
+      success = false;
+      return {};
+    }
+    StopRegister::DirectTrainInfo entry;
+    entry.train_ID_hash = key_from.train_ID_hash;
+    entry.actual_start_date = date - delta_days;
+    entry.leave_time_stamp = entry.actual_start_date * 1440 + actual_time;
+    entry.from_stop_id = key_from.stop_id;
+    entry.saleDate_beg = true_saleDate_beg;
+    entry.arrive_time_stamp = entry.actual_start_date * 1440 + startTime +
+                              (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset;
+    entry.to_stop_id = key_to.stop_id;
+    return entry;
   }
 };
 
