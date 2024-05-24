@@ -346,6 +346,11 @@ std::string TicketSystemEngine::RefundTicket(const std::string &command) {
       }
     }
   }
-  response_stream << "[" << command_id << "] RefundTicket";
+  hash_t user_ID_hash = SplitMix64Hash(user_name);
+  if (online_users.find(user_ID_hash) == online_users.end()) {
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
+  response_stream << "[" << command_id << "] 0";
   return response_stream.str();
 }

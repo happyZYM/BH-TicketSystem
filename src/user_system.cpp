@@ -89,6 +89,7 @@ std::string TicketSystemEngine::AddUser(const std::string &command) {
   strcpy(dat.name, name.c_str());
   strcpy(dat.mailAddr, mailAddr.c_str());
   user_data.Put(new_user_username_hash, dat);
+  transaction_manager.PrepareUserInfo(SplitMix64Hash(username));
   LOG->debug("stored user_name hash: {}", new_user_username_hash);
   LOG->debug("stored user_name: {}", dat.username);
   LOG->debug("stored password hash: {}", dat.password_hash);
