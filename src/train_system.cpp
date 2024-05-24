@@ -44,18 +44,16 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
         command_stream >> station_raw;
         std::stringstream station_raw_stream(station_raw);
         // the sperator is '|' in the raw string
-        for (int i = 0; i < stationNum; i++) {
-          std::getline(station_raw_stream, stations[i], '|');
-        }
+        for (int i = 0; std::getline(station_raw_stream, stations[i], '|'); i++)
+          ;
         break;
       }
       case 'p': {
         std::string price_raw;
         command_stream >> price_raw;
         std::stringstream price_raw_stream(price_raw);
-        for (int i = 0; i < stationNum - 1; i++) {
-          std::string tmp;
-          std::getline(price_raw_stream, tmp, '|');
+        std::string tmp;
+        for (int i = 0; std::getline(price_raw_stream, tmp, '|'); i++) {
           sscanf(tmp.c_str(), "%d", &prices[i]);
         }
         break;
@@ -72,10 +70,11 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
         std::string travelTime_raw;
         command_stream >> travelTime_raw;
         std::stringstream travelTime_raw_stream(travelTime_raw);
-        for (int i = 0; i < stationNum - 1; i++) {
-          std::string tmp;
-          std::getline(travelTime_raw_stream, tmp, '|');
+        LOG->debug("travelTime_raw: {}", travelTime_raw);
+        std::string tmp;
+        for (int i = 0; std::getline(travelTime_raw_stream, tmp, '|'); i++) {
           sscanf(tmp.c_str(), "%d", &travelTimes[i]);
+          LOG->debug("i={} tmp={} travelTimes[{}]={}", i, tmp, i, travelTimes[i]);
         }
         break;
       }
@@ -83,9 +82,8 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
         std::string stopoverTime_raw;
         command_stream >> stopoverTime_raw;
         std::stringstream stopoverTime_raw_stream(stopoverTime_raw);
-        for (int i = 1; i < stationNum - 1; i++) {
-          std::string tmp;
-          std::getline(stopoverTime_raw_stream, tmp);
+        std::string tmp;
+        for (int i = 1; std::getline(stopoverTime_raw_stream, tmp, '|'); i++) {
           sscanf(tmp.c_str(), "%d", &stopoverTimes[i]);
         }
         break;
@@ -148,12 +146,15 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
   core_train_data.stationNum = stationNum;
   for (int i = 0; i < stationNum; i++) {
     core_train_data.stations_hash[i] = SplitMix64Hash(stations[i]);
+    LOG->debug("set core_train_data.stations_hash[{}]={}", i, core_train_data.stations_hash[i]);
   }
   core_train_data.seatNum = seatNum;
   core_train_data.startTime = startTime;
   for (int i = 0; i < stationNum - 1; i++) {
     core_train_data.travelTime[i] = travelTimes[i];
     core_train_data.stopoverTime[i] = stopoverTimes[i];
+    LOG->debug("set core_train_data.travelTime[{}]={}", i, core_train_data.travelTime[i]);
+    LOG->debug("set core_train_data.stopoverTime[{}]={}", i, core_train_data.stopoverTime[i]);
   }
   core_train_data.saleDate_beg = saleDate_begin;
   core_train_data.saleDate_end = saleDate_end;
@@ -253,13 +254,20 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
   for (int i = 0; i < core_train_data.stationNum; i++) {
     uint16_t arrive_time_offset = -1;
     uint16_t leave_time_offset = -1;
+    LOG->debug("i={}", i);
     if (i != 0) {
       vis_time_offset += core_train_data.travelTime[i - 1];
+      LOG->debug("vis_time_offset += travelTime[{}]={}", i - 1, core_train_data.travelTime[i - 1]);
       arrive_time_offset = vis_time_offset;
+      LOG->debug("set arrive_time_offset={}", arrive_time_offset);
     }
     if (i != core_train_data.stationNum - 1) {
-      if (i != 0) vis_time_offset += core_train_data.stopoverTime[i];
+      if (i != 0) {
+        vis_time_offset += core_train_data.stopoverTime[i];
+        LOG->debug("vis_time_offset += stopoverTime[{}]={}", i, core_train_data.stopoverTime[i]);
+      }
       leave_time_offset = vis_time_offset;
+      LOG->debug("set leave_time_offset={}", leave_time_offset);
     }
     stop_register.AddStopInfo(core_train_data.stations_hash[i], train_id_hash, core_train_data.saleDate_beg,
                               core_train_data.saleDate_end, core_train_data.startTime, arrive_time_offset,

@@ -78,6 +78,11 @@ class StopRegister : public DataDriverBase {
   inline void AddStopInfo(hash_t station_hash, hash_t train_hash, uint16_t true_saleDate_beg,
                           uint16_t true_saleDate_end, uint16_t startTime, uint16_t arrive_time_offset,
                           uint16_t leave_time_offset, uint8_t stop_id) {
+    LOG->debug(
+        "AddStopInfo: station_hash {} train_hash {} true_saleDate_beg {} true_saleDate_end {} startTime {} "
+        "arrive_time_offset {} leave_time_offset {} stop_id {}",
+        station_hash, train_hash, true_saleDate_beg, true_saleDate_end, startTime, arrive_time_offset,
+        leave_time_offset, stop_id);
     MinimalTrainRecord record_arrive, record_leave;
     const static int June_1st_2024 = 152;
     record_arrive.saleDate_beg = true_saleDate_beg - June_1st_2024;
@@ -101,13 +106,15 @@ class StopRegister : public DataDriverBase {
     while (it_from != bpt_indexer->end_const()) {
       const auto &key_from = it_from.GetKey();
       const auto &value_from = it_from.GetValue();
+      LOG->debug("it_from now tries to check station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
+                 key_from.train_ID_hash, key_from.stop_id);
       if (key_from.station_ID_hash != from_station_ID) break;
       if (key_from.type != 1) {
         ++it_from;
         continue;
       }
-      // LOG->debug("it_from now checks station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
-      //  key_from.train_ID_hash, key_from.stop_id);
+      LOG->debug("it_from now checks station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
+                 key_from.train_ID_hash, key_from.stop_id);
       int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
       int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
       int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
@@ -132,8 +139,8 @@ class StopRegister : public DataDriverBase {
           ++it_to;
           continue;
         }
-        // LOG->debug("it_to now checks station_id_hash {} train_id_hash {} stop_id {}", key_to.station_ID_hash,
-        //  key_to.train_ID_hash, key_to.stop_id);
+        LOG->debug("it_to now checks station_id_hash {} train_id_hash {} stop_id {}", key_to.station_ID_hash,
+                   key_to.train_ID_hash, key_to.stop_id);
         if (key_to.train_ID_hash > key_from.train_ID_hash) break;
         if (key_to.train_ID_hash == key_from.train_ID_hash) {
           entry.arrive_time_stamp = entry.actual_start_date * 1440 + startTime +
