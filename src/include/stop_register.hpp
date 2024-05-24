@@ -147,7 +147,9 @@ class StopRegister : public DataDriverBase {
           entry.arrive_time_stamp = entry.actual_start_date * 1440 + startTime +
                                     (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset;
           entry.to_stop_id = key_to.stop_id;
-          res.push_back(entry);
+          // LOG->debug("leave_time_stamp {} arrive_time_stamp {}", entry.leave_time_stamp, entry.arrive_time_stamp);
+          if (entry.leave_time_stamp < entry.arrive_time_stamp) res.push_back(entry);
+          // res.push_back(entry);
           ++it_to;
           break;
         }
@@ -175,6 +177,11 @@ class StopRegister : public DataDriverBase {
     }
     const auto &value_from = it_from.GetValue();
     const auto &value_to = it_to.GetValue();
+    if ((*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset >
+        (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset) {
+      success = false;
+      return;
+    }
     int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
     int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
     int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
