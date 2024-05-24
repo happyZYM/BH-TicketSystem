@@ -146,7 +146,7 @@ class TransactionManager : public DataDriverBase {
   }
   inline void AddOrder(std::string trainID, std::string from_station_name, std::string to_station_name, uint8_t status,
                        uint32_t leave_time_stamp, uint32_t arrive_time_stamp, uint32_t num, uint64_t total_price,
-                       uint8_t running_date_offset) {
+                       uint8_t running_date_offset, std::string username) {
     TransactionData tmp;
     strcpy(tmp.trainID, trainID.c_str());
     strcpy(tmp.from_station_name, from_station_name.c_str());
@@ -158,6 +158,7 @@ class TransactionManager : public DataDriverBase {
     tmp.total_price = total_price;
     b_plus_tree_value_index_t data_id = data_storage->write(tmp);
     hash_t train_ID_hash = SplitMix64Hash(trainID);
+    hash_t user_ID_hash = SplitMix64Hash(username);
     if (status == 0) {
       queue_index_t queue_index_for_query;
       queue_index_for_query.train_ID_hash = train_ID_hash;
@@ -176,7 +177,7 @@ class TransactionManager : public DataDriverBase {
       queue_indexer->Put(queue_index, data_id);
     }
     order_history_index_t order_history_index_for_query;
-    order_history_index_for_query.user_ID_hash = train_ID_hash;
+    order_history_index_for_query.user_ID_hash = user_ID_hash;
     order_history_index_for_query.id = order_history_index_special_id;
     int new_id;
     {
@@ -185,7 +186,7 @@ class TransactionManager : public DataDriverBase {
       it_order_history_query.SetValue(new_id);
     }  // to release the lock
     order_history_index_t order_history_index;
-    order_history_index.user_ID_hash = train_ID_hash;
+    order_history_index.user_ID_hash = user_ID_hash;
     order_history_index.id = new_id;
     order_history_indexer->Put(order_history_index, data_id);
   }
@@ -244,6 +245,7 @@ class TransactionManager : public DataDriverBase {
   }
   inline void FetchTransactionData(b_plus_tree_value_index_t idx, TransactionData &data) {
     // warning: the validity of idx is not checked
+    LOG->debug("fetching transaction data with idx {}", idx);
     data_storage->read(data, idx);
   }
 };

@@ -257,13 +257,13 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
     }
     transaction_manager.AddOrder(train_id, from, to, 0, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
                                  total_price * (unsigned long long)ticket_num,
-                                 info.actual_start_date - info.saleDate_beg);
+                                 info.actual_start_date - info.saleDate_beg, user_name);
     response_stream << "[" << command_id << "] queue";
     return response_stream.str();
   }
   transaction_manager.AddOrder(train_id, from, to, 1, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
-                               total_price * (unsigned long long)ticket_num,
-                               info.actual_start_date - info.saleDate_beg);
+                               total_price * (unsigned long long)ticket_num, info.actual_start_date - info.saleDate_beg,
+                               user_name);
   for (int j = from_station_id; j < to_station_id; j++) {
     seats_data.seat[j] -= ticket_num;
   }
@@ -288,7 +288,40 @@ std::string TicketSystemEngine::QueryOrder(const std::string &command) {
       }
     }
   }
-  response_stream << "[" << command_id << "] QueryOrder";
+  hash_t user_ID_hash = SplitMix64Hash(user_name);
+  if (online_users.find(user_ID_hash) == online_users.end()) {
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
+  std::vector<b_plus_tree_value_index_t> his_idxs;
+  transaction_manager.FetchFullUserOrderHistory(user_ID_hash, his_idxs);
+  size_t len = his_idxs.size();
+  TransactionData txn_data;
+  response_stream << "[" << command_id << "] " << len;
+  for (size_t i = 0; i < len; i++) {
+    transaction_manager.FetchTransactionData(his_idxs[i], txn_data);
+    response_stream << "\n[";
+    if (txn_data.status == 0) {
+      response_stream << "pending] ";
+    } else if (txn_data.status == 1) {
+      response_stream << "success] ";
+    } else {
+      response_stream << "refunded] ";
+    }
+    response_stream << txn_data.trainID << " " << txn_data.from_station_name << " ";
+    int leave_month, leave_day, leave_hour, leave_minute;
+    RetrieveReadableTimeStamp(txn_data.leave_time_stamp, leave_month, leave_day, leave_hour, leave_minute);
+    response_stream << std::setw(2) << std::setfill('0') << leave_month << '-' << std::setw(2) << std::setfill('0')
+                    << leave_day << ' ' << std::setw(2) << std::setfill('0') << leave_hour << ':' << std::setw(2)
+                    << std::setfill('0') << leave_minute;
+    response_stream << " -> " << txn_data.to_station_name << " ";
+    int arrive_month, arrive_day, arrive_hour, arrive_minute;
+    RetrieveReadableTimeStamp(txn_data.arrive_time_stamp, arrive_month, arrive_day, arrive_hour, arrive_minute);
+    response_stream << std::setw(2) << std::setfill('0') << arrive_month << '-' << std::setw(2) << std::setfill('0')
+                    << arrive_day << ' ' << std::setw(2) << std::setfill('0') << arrive_hour << ':' << std::setw(2)
+                    << std::setfill('0') << arrive_minute;
+    response_stream << " " << txn_data.total_price / txn_data.num << " " << txn_data.num;
+  }
   return response_stream.str();
 }
 
