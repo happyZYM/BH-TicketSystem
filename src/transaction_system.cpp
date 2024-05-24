@@ -219,11 +219,56 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
              date, RetrieveReadableDate(date).first, RetrieveReadableDate(date).second, from, to, ticket_num,
              accept_queue);
   hash_t user_ID_hash = SplitMix64Hash(user_name);
+  hash_t train_ID_hash = SplitMix64Hash(train_id);
   if (online_users.find(user_ID_hash) == online_users.end()) {
+    LOG->debug("user {} not online", user_name);
     response_stream << "[" << command_id << "] -1";
     return response_stream.str();
   }
-  response_stream << "[" << command_id << "] BuyTicket";
+  bool success = false;
+  StopRegister::DirectTrainInfo info;
+  hash_t from_station_hash = SplitMix64Hash(from), to_station_hash = SplitMix64Hash(to);
+  stop_register.RequestSingleTrain(train_ID_hash, date, from_station_hash, to_station_hash, success, info);
+  if (!success) {
+    LOG->debug("no train available");
+    response_stream << "[" << command_id << "] -1";
+    return response_stream.str();
+  }
+  TicketPriceData ticket_price_data;
+  SeatsData seats_data;
+  int from_station_id = info.from_stop_id;
+  int to_station_id = info.to_stop_id;
+  int total_price = 0;
+  int available_seats = 0;
+  ticket_price_data_storage.Get(train_ID_hash, ticket_price_data);
+  seats_data_storage.Get({train_ID_hash, info.actual_start_date - info.saleDate_beg}, seats_data);
+  for (int j = from_station_id; j < to_station_id; j++) {
+    total_price += ticket_price_data.price[j];
+  }
+  available_seats = seats_data.seat[from_station_id];
+  for (int j = from_station_id + 1; j < to_station_id; j++) {
+    available_seats = std::min(available_seats, (int)seats_data.seat[j]);
+  }
+  if (ticket_num > available_seats) {
+    if (accept_queue == "false") {
+      LOG->debug("no enough seats");
+      response_stream << "[" << command_id << "] -1";
+      return response_stream.str();
+    }
+    transaction_manager.AddOrder(train_id, from, to, 0, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
+                                 total_price * (unsigned long long)ticket_num,
+                                 info.actual_start_date - info.saleDate_beg);
+    response_stream << "[" << command_id << "] queue";
+    return response_stream.str();
+  }
+  transaction_manager.AddOrder(train_id, from, to, 1, info.leave_time_stamp, info.arrive_time_stamp, ticket_num,
+                               total_price * (unsigned long long)ticket_num,
+                               info.actual_start_date - info.saleDate_beg);
+  for (int j = from_station_id; j < to_station_id; j++) {
+    seats_data.seat[j] -= ticket_num;
+  }
+  seats_data_storage.Put({train_ID_hash, info.actual_start_date - info.saleDate_beg}, seats_data);
+  response_stream << "[" << command_id << "] " << total_price * (unsigned long long)ticket_num;
   return response_stream.str();
 }
 

@@ -156,14 +156,14 @@ class StopRegister : public DataDriverBase {
       ++it_from;
     }
   }
-  inline StopRegister::DirectTrainInfo RequestSingleTrain(hash_t train_ID_hash, int date, hash_t from_station_hash,
-                                                          hash_t to_station_hash, bool &success) {
+  inline void RequestSingleTrain(hash_t train_ID_hash, int date, hash_t from_station_hash, hash_t to_station_hash,
+                                 bool &success, StopRegister::DirectTrainInfo &entry) {
     const static int June_1st_2024 = 152;
     auto it_from = bpt_indexer->lower_bound_const({from_station_hash, train_ID_hash, 1});
     auto it_to = bpt_indexer->lower_bound_const({to_station_hash, train_ID_hash, 0});
     if (it_from == bpt_indexer->end_const() || it_to == bpt_indexer->end_const()) {
       success = false;
-      return {};
+      return;
     }
     const auto &key_from = it_from.GetKey();
     const auto &key_to = it_to.GetKey();
@@ -171,7 +171,7 @@ class StopRegister : public DataDriverBase {
         key_from.station_ID_hash != from_station_hash || key_to.station_ID_hash != to_station_hash ||
         key_from.type != 1 || key_to.type != 0) {
       success = false;
-      return {};
+      return;
     }
     const auto &value_from = it_from.GetValue();
     const auto &value_to = it_to.GetValue();
@@ -183,9 +183,8 @@ class StopRegister : public DataDriverBase {
     int delta_days = actual_time / 1440;
     if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) {
       success = false;
-      return {};
+      return;
     }
-    StopRegister::DirectTrainInfo entry;
     entry.train_ID_hash = key_from.train_ID_hash;
     entry.actual_start_date = date - delta_days;
     entry.leave_time_stamp = entry.actual_start_date * 1440 + actual_time;
@@ -194,7 +193,7 @@ class StopRegister : public DataDriverBase {
     entry.arrive_time_stamp = entry.actual_start_date * 1440 + startTime +
                               (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset;
     entry.to_stop_id = key_to.stop_id;
-    return entry;
+    success = true;
   }
 };
 

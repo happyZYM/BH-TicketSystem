@@ -273,6 +273,7 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
                               core_train_data.saleDate_end, core_train_data.startTime, arrive_time_offset,
                               leave_time_offset, i);
   }
+  transaction_manager.PrepareTrainInfo(train_id_hash, core_train_data.saleDate_end - core_train_data.saleDate_beg + 1);
   response_stream << '[' << command_id << "] 0";
   return response_stream.str();
 }

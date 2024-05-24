@@ -128,6 +128,22 @@ class TransactionManager : public DataDriverBase {
     queue_indexer->Flush();
     order_history_indexer->Flush();
   }
+  inline void PrepareTrainInfo(hash_t train_ID_hash, int total_days) {
+    queue_index_t queue_index_for_query;
+    queue_index_for_query.train_ID_hash = train_ID_hash;
+    queue_index_for_query.running_offset = 0;
+    queue_index_for_query.id = queue_index_specai_id;
+    for (int i = 0; i < total_days; i++) {
+      queue_index_for_query.running_offset = i;
+      queue_indexer->Put(queue_index_for_query, 0);
+    }
+  }
+  inline void PrepareUserInfo(hash_t user_ID_hash) {
+    order_history_index_t order_history_index_for_query;
+    order_history_index_for_query.user_ID_hash = user_ID_hash;
+    order_history_index_for_query.id = order_history_index_special_id;
+    order_history_indexer->Put(order_history_index_for_query, 0);
+  }
   inline void AddOrder(std::string trainID, std::string from_station_name, std::string to_station_name, uint8_t status,
                        uint32_t leave_time_stamp, uint32_t arrive_time_stamp, uint32_t num, uint64_t total_price,
                        uint8_t running_date_offset) {
@@ -174,7 +190,7 @@ class TransactionManager : public DataDriverBase {
     order_history_indexer->Put(order_history_index, data_id);
   }
   inline void FetchQueue(hash_t train_ID_hash, uint8_t running_date_offset,
-                         std::vector<b_plus_tree_value_index_t> &res) {
+                         std::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> &res) {
     // warning: the validity of train_ID_hash is not checked
     queue_index_t queue_index_for_query;
     queue_index_for_query.train_ID_hash = train_ID_hash;
@@ -185,8 +201,17 @@ class TransactionManager : public DataDriverBase {
     res.resize(total_num);
     for (int i = 0; i < total_num; i++) {
       ++it;
-      res[i] = it.GetValue();
+      res[i].first = it.GetValue();
+      res[i].second = it.GetKey().id;
     }
+  }
+  inline void RemoveOrderFromQueue(hash_t train_ID_hash, uint8_t running_date_offset, uint32_t id) {
+    // warning: the validity of train_ID_hash is not checked
+    queue_index_t queue_index_for_query;
+    queue_index_for_query.train_ID_hash = train_ID_hash;
+    queue_index_for_query.running_offset = running_date_offset;
+    queue_index_for_query.id = id;
+    queue_indexer->Remove(queue_index_for_query);
   }
   inline void FetchFullUserOrderHistory(hash_t user_ID_hash, std::vector<b_plus_tree_value_index_t> &res) {
     // warning: the validity of user_ID_hash is not checked
