@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
@@ -51,12 +52,74 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
   hash_t from_hash = SplitMix64Hash(from), to_hash = SplitMix64Hash(to);
   std::vector<StopRegister::DirectTrainInfo> valid_trains;
   stop_register.QueryDirectTrains(date, from_hash, to_hash, valid_trains);
-  std::vector<std::pair<StopRegister::DirectTrainInfo, AdditionalTrainInfo>> valid_trains_full;
   size_t len = valid_trains.size();
+  std::vector<std::pair<StopRegister::DirectTrainInfo, AdditionalTrainInfo>> valid_trains_full(len);
+  LOG->debug("retrieving full data");
   for (size_t i = 0; i < len; i++) {
     valid_trains_full[i].first = valid_trains[i];
+    TicketPriceData ticket_price_data;
+    SeatsData seats_data;
+    int from_station_id = valid_trains[i].from_stop_id;
+    int to_station_id = valid_trains[i].to_stop_id;
+    ticket_price_data_storage.Get(valid_trains[i].train_ID_hash, ticket_price_data);
+    LOG->debug("analyzing train {} from {} to {}", ticket_price_data.trainID, from_station_id, to_station_id);
+    seats_data_storage.Get(
+        {valid_trains[i].train_ID_hash, valid_trains[i].actual_start_date - valid_trains[i].saleDate_beg}, seats_data);
+    strcpy(valid_trains_full[i].second.trainID, ticket_price_data.trainID);
+    int total_price = 0;
+    for (int j = from_station_id; j < to_station_id; j++) {
+      total_price += ticket_price_data.price[j];
+    }
+    valid_trains_full[i].second.price = total_price;
+    int seats = seats_data.seat[from_station_id];
+    for (int j = from_station_id + 1; j < to_station_id; j++) {
+      seats = std::min(seats, (int)seats_data.seat[j]);
+    }
+    valid_trains_full[i].second.seats = seats;
   }
-  response_stream << "[" << command_id << "] QueryTicket";
+  LOG->debug("successfully retrieved full data");
+  std::vector<int> valid_trains_full_index(len);
+  for (size_t i = 0; i < len; i++) {
+    valid_trains_full_index[i] = i;
+  }
+  if (order_by == "time") {
+    auto cmp = [&valid_trains_full](int a, int b) {
+      int time_cost_a = valid_trains_full[a].first.arrive_time_stamp - valid_trains_full[a].first.leave_time_stamp;
+      int time_cost_b = valid_trains_full[b].first.arrive_time_stamp - valid_trains_full[b].first.leave_time_stamp;
+      if (time_cost_a != time_cost_b) return time_cost_a < time_cost_b;
+      return strcmp(valid_trains_full[a].second.trainID, valid_trains_full[b].second.trainID) < 0;
+    };
+    std::sort(valid_trains_full_index.begin(), valid_trains_full_index.end(), cmp);
+  } else {
+    // order by price
+    auto cmp = [&valid_trains_full](int a, int b) {
+      if (valid_trains_full[a].second.price != valid_trains_full[b].second.price)
+        return valid_trains_full[a].second.price < valid_trains_full[b].second.price;
+      return strcmp(valid_trains_full[a].second.trainID, valid_trains_full[b].second.trainID) < 0;
+    };
+    std::sort(valid_trains_full_index.begin(), valid_trains_full_index.end(), cmp);
+  }
+  response_stream << "[" << command_id << "] " << len;
+  for (int i = 0; i < len; i++) {
+    response_stream << '\n';
+    response_stream << valid_trains_full[valid_trains_full_index[i]].second.trainID << ' ' << from << ' ';
+    int leave_time_stamp = valid_trains_full[valid_trains_full_index[i]].first.leave_time_stamp;
+    int leave_time_month, leave_time_day, leave_time_hour, leave_time_minute;
+    RetrieveReadableTimeStamp(leave_time_stamp, leave_time_month, leave_time_day, leave_time_hour, leave_time_minute);
+    response_stream << std::setw(2) << std::setfill('0') << leave_time_month << '-' << std::setw(2) << std::setfill('0')
+                    << leave_time_day << ' ' << std::setw(2) << std::setfill('0') << leave_time_hour << ':'
+                    << std::setw(2) << std::setfill('0') << leave_time_minute;
+    response_stream << " -> " << to << ' ';
+    int arrive_time_stamp = valid_trains_full[valid_trains_full_index[i]].first.arrive_time_stamp;
+    int arrive_time_month, arrive_time_day, arrive_time_hour, arrive_time_minute;
+    RetrieveReadableTimeStamp(arrive_time_stamp, arrive_time_month, arrive_time_day, arrive_time_hour,
+                              arrive_time_minute);
+    response_stream << std::setw(2) << std::setfill('0') << arrive_time_month << '-' << std::setw(2)
+                    << std::setfill('0') << arrive_time_day << ' ' << std::setw(2) << std::setfill('0')
+                    << arrive_time_hour << ':' << std::setw(2) << std::setfill('0') << arrive_time_minute;
+    response_stream << ' ' << valid_trains_full[valid_trains_full_index[i]].second.price << ' '
+                    << valid_trains_full[valid_trains_full_index[i]].second.seats;
+  }
   return response_stream.str();
 }
 

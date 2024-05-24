@@ -234,6 +234,7 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
     }
   }
   hash_t train_id_hash = SplitMix64Hash(trainID);
+  LOG->debug("hash({})={}", trainID, train_id_hash);
   CoreTrainData core_train_data;
   try {
     core_train_data_storage.Get(train_id_hash, core_train_data);
@@ -262,7 +263,7 @@ std::string TicketSystemEngine::ReleaseTrain(const std::string &command) {
     }
     stop_register.AddStopInfo(core_train_data.stations_hash[i], train_id_hash, core_train_data.saleDate_beg,
                               core_train_data.saleDate_end, core_train_data.startTime, arrive_time_offset,
-                              leave_time_offset);
+                              leave_time_offset, i);
   }
   response_stream << '[' << command_id << "] 0";
   return response_stream.str();

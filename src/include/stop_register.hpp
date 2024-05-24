@@ -12,6 +12,7 @@ struct stop_register_t {
   hash_t train_ID_hash;
   uint16_t type : 1;
   uint16_t startTime : 12;
+  uint8_t stop_id;
 };
 inline bool operator<(const stop_register_t &A, const stop_register_t &B) {
   if (A.station_ID_hash != B.station_ID_hash) return A.station_ID_hash < B.station_ID_hash;
@@ -37,6 +38,9 @@ class StopRegister : public DataDriverBase {
     int actual_start_date;
     int leave_time_stamp;
     int arrive_time_stamp;
+    int from_stop_id;
+    int to_stop_id;
+    int saleDate_beg;
   };
   // for satety, all the copy/move operations are deleted, please manage it using pointer
   StopRegister &operator=(const StopRegister &) = delete;
@@ -73,7 +77,7 @@ class StopRegister : public DataDriverBase {
   }
   inline void AddStopInfo(hash_t station_hash, hash_t train_hash, uint16_t true_saleDate_beg,
                           uint16_t true_saleDate_end, uint16_t startTime, uint16_t arrive_time_offset,
-                          uint16_t leave_time_offset) {
+                          uint16_t leave_time_offset, uint8_t stop_id) {
     MinimalTrainRecord record_arrive, record_leave;
     const static int June_1st_2024 = 152;
     record_arrive.saleDate_beg = true_saleDate_beg - June_1st_2024;
@@ -83,10 +87,10 @@ class StopRegister : public DataDriverBase {
     record_leave.saleDate_end = true_saleDate_end - June_1st_2024;
     record_leave.vis_time_offset = leave_time_offset;
     if (arrive_time_offset != uint16_t(-1))
-      bpt_indexer->Put({station_hash, train_hash, 0, startTime},
+      bpt_indexer->Put({station_hash, train_hash, 0, startTime, stop_id},
                        *reinterpret_cast<default_numeric_index_t *>(&record_arrive));
     if (leave_time_offset != uint16_t(-1))
-      bpt_indexer->Put({station_hash, train_hash, 1, startTime},
+      bpt_indexer->Put({station_hash, train_hash, 1, startTime, stop_id},
                        *reinterpret_cast<default_numeric_index_t *>(&record_leave));
   }
   inline void QueryDirectTrains(uint32_t date, hash_t from_station_ID, hash_t to_station_ID,
@@ -102,17 +106,24 @@ class StopRegister : public DataDriverBase {
         ++it_from;
         continue;
       }
+      // LOG->debug("it_from now checks station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
+      //  key_from.train_ID_hash, key_from.stop_id);
       int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
       int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
       int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
       int startTime = key_from.startTime;
       int actual_time = startTime + leave_time_offset;
       int delta_days = actual_time / 1440;
-      if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) continue;
+      if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) {
+        ++it_from;
+        continue;
+      }
       StopRegister::DirectTrainInfo entry;
       entry.train_ID_hash = key_from.train_ID_hash;
       entry.actual_start_date = date - delta_days;
-      entry.leave_time_stamp = true_saleDate_beg * 1440 + actual_time;
+      entry.leave_time_stamp = entry.actual_start_date * 1440 + actual_time;
+      entry.from_stop_id = key_from.stop_id;
+      entry.saleDate_beg = true_saleDate_beg;
       while (it_to != bpt_indexer->end_const()) {
         const auto &key_to = it_to.GetKey();
         const auto &value_to = it_to.GetValue();
@@ -121,10 +132,14 @@ class StopRegister : public DataDriverBase {
           ++it_to;
           continue;
         }
+        // LOG->debug("it_to now checks station_id_hash {} train_id_hash {} stop_id {}", key_to.station_ID_hash,
+        //  key_to.train_ID_hash, key_to.stop_id);
         if (key_to.train_ID_hash > key_from.train_ID_hash) break;
         if (key_to.train_ID_hash == key_from.train_ID_hash) {
-          entry.arrive_time_stamp = true_saleDate_beg * 1440 + startTime +
+          entry.arrive_time_stamp = entry.actual_start_date * 1440 + startTime +
                                     (*reinterpret_cast<const MinimalTrainRecord *>(&value_to)).vis_time_offset;
+          entry.to_stop_id = key_to.stop_id;
+          res.push_back(entry);
           ++it_to;
           break;
         }
