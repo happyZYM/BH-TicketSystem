@@ -251,7 +251,7 @@ std::string TicketSystemEngine::BuyTicket(const std::string &command) {
     available_seats = std::min(available_seats, (int)seats_data.seat[j]);
   }
   if (ticket_num > available_seats) {
-    if (accept_queue == "false") {
+    if (accept_queue == "false" || ticket_num > seats_data.max_seats) {
       LOG->debug("no enough seats");
       response_stream << "[" << command_id << "] -1";
       return response_stream.str();

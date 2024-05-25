@@ -171,6 +171,7 @@ std::string TicketSystemEngine::AddTrain(const std::string &command) {
   for (int i = 0; i < core_train_data.stationNum - 1; i++) {
     seats_data.seat[i] = core_train_data.seatNum;
   }
+  seats_data.max_seats = core_train_data.seatNum;
   int day_count = core_train_data.saleDate_end - core_train_data.saleDate_beg + 1;
   for (int i = 0; i < day_count; i++) {
     seats_data_storage.Put(std::make_pair(train_id_hash, i), seats_data);

@@ -41,5 +41,6 @@ struct CoreTrainData {
 
 struct SeatsData {
   uint32_t seat[99];
+  uint32_t max_seats;
 };
 #endif
