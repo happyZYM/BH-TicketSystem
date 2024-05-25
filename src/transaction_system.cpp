@@ -281,7 +281,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
       PrintFullTimeStamp(train2_earliest_leaving_time_stamp, test_buf);
       LOG->debug("train2_earliest_leaving_time_stamp: {}", test_buf.str());
       int cur_train2_leaving_time_stamp = train2_earliest_leaving_time_stamp;
-      int tran2_day_delta;
+      int tran2_day_delta = 0;
       if (cur_train2_leaving_time_stamp < cur_train1_arriving_time_stamp) {
         tran2_day_delta = (cur_train1_arriving_time_stamp - cur_train2_leaving_time_stamp + 1440 - 1) / 1440;
         cur_train2_leaving_time_stamp += tran2_day_delta * 1440;
@@ -290,6 +290,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
           cur_train2_leaving_time_stamp + train2_arrive_time_offeset[dest_station_offset] - train2_leave_time_offset[i];
       if (!has_solution) {
         // just copy the first solution
+        LOG->debug("generating the first solution");
         has_solution = true;
         res_train1_id = train1_price_data.trainID;
         res_train2_id = train2_price_data.trainID;
@@ -300,14 +301,20 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
         res_train1_price = train1_price_sum[transfer_station_offset] - train1_price_sum[start_station_offset];
         res_train2_price = train2_price_sum[dest_station_offset] - train2_price_sum[i];
         StationNameData station_name_data;
+        LOG->debug("trying to get station name data");
         station_name_data_storage.Get(train1_ID_hash, station_name_data);
+        LOG->debug("successfully got station name data");
         auto &str = station_name_data.name[transfer_station_offset];
         res_transfer_station_name = "";
         for (int i = 0; i < 40 && str[i] != '\0'; i++) res_transfer_station_name.push_back(str[i]);
         SeatsData train1_seats_data, train2_seats_data;
+        LOG->debug("trying to get train1 seats data");
         seats_data_storage.Get({train1_ID_hash, train1_actual_start_date - train1_core_data.saleDate_beg},
                                train1_seats_data);
+        LOG->debug("successfully got train1 seats data");
+        LOG->debug("trying to get train2 seats data");
         seats_data_storage.Get({train2_ID_hash, tran2_day_delta}, train2_seats_data);
+        LOG->debug("successfully got train2 seats data");
         res_train1_seat = train1_seats_data.seat[start_station_offset];
         for (int j = start_station_offset + 1; j < transfer_station_offset; j++) {
           res_train1_seat = std::min(res_train1_seat, (int)train1_seats_data.seat[j]);
@@ -317,6 +324,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
           res_train2_seat = std::min(res_train2_seat, (int)train2_seats_data.seat[j]);
         }
       } else {
+        LOG->debug("trying to generate a new solution");
         int cur_total_time = cur_train2_arriving_time_stamp - cur_train1_leaving_time_stamp;
         int existsing_total_time = res_train2_arriving_time_stamp - res_train1_leaving_time_stamp;
         int cur_total_price = train1_price_sum[transfer_station_offset] - train1_price_sum[start_station_offset] +
@@ -350,14 +358,20 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
         res_train1_price = train1_price_sum[transfer_station_offset] - train1_price_sum[start_station_offset];
         res_train2_price = train2_price_sum[dest_station_offset] - train2_price_sum[i];
         StationNameData station_name_data;
+        LOG->debug("trying to get station name data");
         station_name_data_storage.Get(train1_ID_hash, station_name_data);
+        LOG->debug("successfully got station name data");
         auto &str = station_name_data.name[transfer_station_offset];
         res_transfer_station_name = "";
         for (int i = 0; i < 40 && str[i] != '\0'; i++) res_transfer_station_name.push_back(str[i]);
         SeatsData train1_seats_data, train2_seats_data;
+        LOG->debug("trying to get train1 seats data");
         seats_data_storage.Get({train1_ID_hash, train1_actual_start_date - train1_core_data.saleDate_beg},
                                train1_seats_data);
+        LOG->debug("successfully got train1 seats data");
+        LOG->debug("trying to get train2 seats data");
         seats_data_storage.Get({train2_ID_hash, tran2_day_delta}, train2_seats_data);
+        LOG->debug("successfully got train2 seats data");
         res_train1_seat = train1_seats_data.seat[start_station_offset];
         for (int j = start_station_offset + 1; j < transfer_station_offset; j++) {
           res_train1_seat = std::min(res_train1_seat, (int)train1_seats_data.seat[j]);

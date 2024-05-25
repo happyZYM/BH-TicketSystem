@@ -16,8 +16,15 @@ inline hash_t SplitMix64Hash(const std::string &str) noexcept {
   hash_t ret = 0;
   int i = 0;
   size_t len = str.length();
+  hash_t *buf = new hash_t;
+  char *buf_ptr = reinterpret_cast<char *>(buf);
   for (; i + 8 <= len; i += 8) {
-    ret ^= *reinterpret_cast<const hash_t *>(str.c_str() + i);
+    // ret ^= *reinterpret_cast<const hash_t *>(str.c_str() + i);
+    // ret ^= *reinterpret_cast<const hash_t *>(inner_salt + (i & 15));
+    for (int j = 0; j < 8; ++j) {
+      buf_ptr[j] = str[i + j];
+    }
+    ret ^= *buf;
     ret ^= *reinterpret_cast<const hash_t *>(inner_salt + (i & 15));
     ret += 0x9e3779b97f4a7c15;
     ret = (ret ^ (ret >> 30)) * 0xbf58476d1ce4e5b9;
@@ -32,6 +39,7 @@ inline hash_t SplitMix64Hash(const std::string &str) noexcept {
     ret = (ret ^ (ret >> 27)) * 0x94d049bb133111eb;
     ret ^= ret >> 31;
   }
+  delete buf;
   return ret;
 }
 inline hash_t SplitMix64Hash(const std::string_view &str) noexcept {
@@ -43,8 +51,15 @@ inline hash_t SplitMix64Hash(const std::string_view &str) noexcept {
   hash_t ret = 0;
   int i = 0;
   size_t len = str.length();
+  hash_t *buf = new hash_t;
+  char *buf_ptr = reinterpret_cast<char *>(buf);
   for (; i + 8 <= len; i += 8) {
-    ret ^= *reinterpret_cast<const hash_t *>(str.data() + i);
+    // ret ^= *reinterpret_cast<const hash_t *>(str.data() + i);
+    // ret ^= *reinterpret_cast<const hash_t *>(inner_salt + (i & 15));
+    for (int j = 0; j < 8; ++j) {
+      buf_ptr[j] = str[i + j];
+    }
+    ret ^= *buf;
     ret ^= *reinterpret_cast<const hash_t *>(inner_salt + (i & 15));
     ret += 0x9e3779b97f4a7c15;
     ret = (ret ^ (ret >> 30)) * 0xbf58476d1ce4e5b9;
@@ -59,6 +74,7 @@ inline hash_t SplitMix64Hash(const std::string_view &str) noexcept {
     ret = (ret ^ (ret >> 27)) * 0x94d049bb133111eb;
     ret ^= ret >> 31;
   }
+  delete buf;
   return ret;
 }
 
