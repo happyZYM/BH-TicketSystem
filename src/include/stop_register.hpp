@@ -202,6 +202,52 @@ class StopRegister : public DataDriverBase {
     entry.to_stop_id = key_to.stop_id;
     success = true;
   }
+  inline void FetchTrainLeavingFrom(uint32_t date, hash_t from_station_ID, std::vector<hash_t> &res) {
+    const static int June_1st_2024 = 152;
+    res.clear();
+    auto it_from = bpt_indexer->lower_bound_const({from_station_ID, 0});
+    while (it_from != bpt_indexer->end_const()) {
+      const auto &key_from = it_from.GetKey();
+      const auto &value_from = it_from.GetValue();
+      LOG->debug("it_from now tries to check station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
+                 key_from.train_ID_hash, key_from.stop_id);
+      if (key_from.station_ID_hash != from_station_ID) break;
+      if (key_from.type != 1) {
+        ++it_from;
+        continue;
+      }
+      LOG->debug("it_from now checks station_id_hash {} train_id_hash {} stop_id {}", key_from.station_ID_hash,
+                 key_from.train_ID_hash, key_from.stop_id);
+      int true_saleDate_beg = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_beg + June_1st_2024;
+      int true_saleDate_end = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).saleDate_end + June_1st_2024;
+      int leave_time_offset = (*reinterpret_cast<const MinimalTrainRecord *>(&value_from)).vis_time_offset;
+      int startTime = key_from.startTime;
+      int actual_time = startTime + leave_time_offset;
+      int delta_days = actual_time / 1440;
+      if (date - delta_days < true_saleDate_beg || date - delta_days > true_saleDate_end) {
+        ++it_from;
+        continue;
+      }
+      res.push_back(key_from.train_ID_hash);
+      ++it_from;
+    }
+  }
+  inline void FetchTrainArriavingAt(uint32_t date, hash_t to_station_ID, std::vector<hash_t> &res) {
+    res.clear();
+    auto it_to = bpt_indexer->lower_bound_const({to_station_ID, 0});
+    while (it_to != bpt_indexer->end_const()) {
+      const auto &key_to = it_to.GetKey();
+      LOG->debug("it_to now tries to check station_id_hash {} train_id_hash {} stop_id {}", key_to.station_ID_hash,
+                 key_to.train_ID_hash, key_to.stop_id);
+      if (key_to.station_ID_hash != to_station_ID) break;
+      if (key_to.type != 0) {
+        ++it_to;
+        continue;
+      }
+      res.push_back(key_to.train_ID_hash);
+      ++it_to;
+    }
+  }
 };
 
 #endif

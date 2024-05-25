@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 #include <cstdint>
+#include <iomanip>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -120,9 +122,15 @@ inline void RetrieveReadableTimeStamp(int full_time_stamp, int &month, int &day,
   minute = minute_id % 60;
 }
 
-
 inline int GetFullTimeStamp(int month, int day, int hour, int minute) {
   int day_id = GetCompactDate(month, day);
   return day_id * 1440 + hour * 60 + minute;
+}
+
+inline void PrintFullTimeStamp(int full_time_stamp, std::ostream &os) {
+  int month, day, hour, minute;
+  RetrieveReadableTimeStamp(full_time_stamp, month, day, hour, minute);
+  os << std::setw(2) << std::setfill('0') << month << '-' << std::setw(2) << std::setfill('0') << day << ' '
+     << std::setw(2) << std::setfill('0') << hour << ':' << std::setw(2) << std::setfill('0') << minute;
 }
 #endif

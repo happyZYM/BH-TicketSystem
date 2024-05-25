@@ -51,6 +51,12 @@ class TicketSystemEngine {
   TransactionManager transaction_manager;
 
   void PrepareExit();
+  void CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_hash, const std::string &from_station,
+                     const std::string &to_station, int date, bool &has_solution, std::string &res_train1_id,
+                     std::string &res_train2_id, int &res_train1_leaving_time_stamp,
+                     int &res_train1_arriving_time_stamp, int &res_train2_leaving_time_stamp,
+                     int &res_train2_arriving_time_stamp, int &res_train1_price, int &res_train1_seat,
+                     int &res_train2_price, int &res_train2_seat, std::string &res_transfer_station_name);
 
  public:
   const bool *its_time_to_exit_ptr = &its_time_to_exit;
