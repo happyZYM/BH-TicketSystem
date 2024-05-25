@@ -211,6 +211,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
                                        int &res_train1_price, int &res_train1_seat, int &res_train2_price,
                                        int &res_train2_seat, std::string &res_transfer_station_name,
                                        bool sort_by_time) {
+  if (train1_ID_hash == train2_ID_hash) return;
   std::map<hash_t, int> transfer_mp;
   hash_t from_station_hash = SplitMix64Hash(from_station), to_station_hash = SplitMix64Hash(to_station);
   CoreTrainData train1_core_data, train2_core_data;
@@ -280,9 +281,10 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
       PrintFullTimeStamp(train2_earliest_leaving_time_stamp, test_buf);
       LOG->debug("train2_earliest_leaving_time_stamp: {}", test_buf.str());
       int cur_train2_leaving_time_stamp = train2_earliest_leaving_time_stamp;
+      int tran2_day_delta;
       if (cur_train2_leaving_time_stamp < cur_train1_arriving_time_stamp) {
-        int delta_count = (cur_train1_arriving_time_stamp - cur_train2_leaving_time_stamp + 1440 - 1) / 1440;
-        cur_train2_leaving_time_stamp += delta_count * 1440;
+        tran2_day_delta = (cur_train1_arriving_time_stamp - cur_train2_leaving_time_stamp + 1440 - 1) / 1440;
+        cur_train2_leaving_time_stamp += tran2_day_delta * 1440;
       }
       int cur_train2_arriving_time_stamp =
           cur_train2_leaving_time_stamp + train2_arrive_time_offeset[dest_station_offset] - train2_leave_time_offset[i];
@@ -305,9 +307,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
         SeatsData train1_seats_data, train2_seats_data;
         seats_data_storage.Get({train1_ID_hash, train1_actual_start_date - train1_core_data.saleDate_beg},
                                train1_seats_data);
-        int train2_actual_start_date = cur_train2_leaving_time_stamp / 1440;
-        seats_data_storage.Get({train2_ID_hash, train2_actual_start_date - train2_core_data.saleDate_beg},
-                               train2_seats_data);
+        seats_data_storage.Get({train2_ID_hash, tran2_day_delta}, train2_seats_data);
         res_train1_seat = train1_seats_data.seat[start_station_offset];
         for (int j = start_station_offset + 1; j < transfer_station_offset; j++) {
           res_train1_seat = std::min(res_train1_seat, (int)train1_seats_data.seat[j]);
@@ -357,9 +357,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
         SeatsData train1_seats_data, train2_seats_data;
         seats_data_storage.Get({train1_ID_hash, train1_actual_start_date - train1_core_data.saleDate_beg},
                                train1_seats_data);
-        int train2_actual_start_date = cur_train2_leaving_time_stamp / 1440;
-        seats_data_storage.Get({train2_ID_hash, train2_actual_start_date - train2_core_data.saleDate_beg},
-                               train2_seats_data);
+        seats_data_storage.Get({train2_ID_hash, tran2_day_delta}, train2_seats_data);
         res_train1_seat = train1_seats_data.seat[start_station_offset];
         for (int j = start_station_offset + 1; j < transfer_station_offset; j++) {
           res_train1_seat = std::min(res_train1_seat, (int)train1_seats_data.seat[j]);
