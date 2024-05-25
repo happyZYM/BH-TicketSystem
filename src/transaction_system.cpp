@@ -182,7 +182,7 @@ std::string TicketSystemEngine::QueryTransfer(const std::string &command) {
       CheckTransfer(trains_leaving_from_from[i], trains_arriving_at_dest[j], from, to, date, has_solution, train1_id,
                     train2_id, train1_leaving_time_stamp, train1_arriving_time_stamp, train2_leaving_time_stamp,
                     train2_arriving_time_stamp, train1_price, train1_seats, train2_price, train2_seats,
-                    transfer_station_id);
+                    transfer_station_id, order_by[0] == 't');
     }
   }
   if (!has_solution) {
@@ -209,7 +209,8 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
                                        int &res_train1_leaving_time_stamp, int &res_train1_arriving_time_stamp,
                                        int &res_train2_leaving_time_stamp, int &res_train2_arriving_time_stamp,
                                        int &res_train1_price, int &res_train1_seat, int &res_train2_price,
-                                       int &res_train2_seat, std::string &res_transfer_station_name) {
+                                       int &res_train2_seat, std::string &res_transfer_station_name,
+                                       bool sort_by_time) {
   std::map<hash_t, int> transfer_mp;
   hash_t from_station_hash = SplitMix64Hash(from_station), to_station_hash = SplitMix64Hash(to_station);
   CoreTrainData train1_core_data, train2_core_data;
@@ -315,7 +316,58 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
         for (int j = i + 1; j < dest_station_offset; j++) {
           res_train2_seat = std::min(res_train2_seat, (int)train2_seats_data.seat[j]);
         }
-        return;
+      } else {
+        int cur_total_time = cur_train2_arriving_time_stamp - cur_train1_leaving_time_stamp;
+        int existsing_total_time = res_train2_arriving_time_stamp - res_train1_leaving_time_stamp;
+        int cur_total_price = train1_price_sum[transfer_station_offset] - train1_price_sum[start_station_offset] +
+                              train2_price_sum[dest_station_offset] - train2_price_sum[i];
+        int existing_total_price = res_train1_price + res_train2_price;
+        int status;
+        if (sort_by_time) {
+          if (existsing_total_time < cur_total_time) continue;
+          if (existsing_total_time > cur_total_time) goto passed_test;
+          if (existing_total_price < cur_total_price) continue;
+          if (existing_total_price > cur_total_price) goto passed_test;
+        } else {
+          if (existing_total_price < cur_total_price) continue;
+          if (existing_total_price > cur_total_price) goto passed_test;
+          if (existsing_total_time < cur_total_time) continue;
+          if (existsing_total_time > cur_total_time) goto passed_test;
+        }
+        status = strcmp(res_train1_id.c_str(), train1_price_data.trainID);
+        if (status < 0) continue;
+        if (status > 0) goto passed_test;
+        status = strcmp(res_train2_id.c_str(), train2_price_data.trainID);
+        if (status < 0) continue;
+        if (status > 0) goto passed_test;
+      passed_test:;
+        res_train1_id = train1_price_data.trainID;
+        res_train2_id = train2_price_data.trainID;
+        res_train1_leaving_time_stamp = cur_train1_leaving_time_stamp;
+        res_train1_arriving_time_stamp = cur_train1_arriving_time_stamp;
+        res_train2_leaving_time_stamp = cur_train2_leaving_time_stamp;
+        res_train2_arriving_time_stamp = cur_train2_arriving_time_stamp;
+        res_train1_price = train1_price_sum[transfer_station_offset] - train1_price_sum[start_station_offset];
+        res_train2_price = train2_price_sum[dest_station_offset] - train2_price_sum[i];
+        StationNameData station_name_data;
+        station_name_data_storage.Get(train1_ID_hash, station_name_data);
+        auto &str = station_name_data.name[transfer_station_offset];
+        res_transfer_station_name = "";
+        for (int i = 0; i < 40 && str[i] != '\0'; i++) res_transfer_station_name.push_back(str[i]);
+        SeatsData train1_seats_data, train2_seats_data;
+        seats_data_storage.Get({train1_ID_hash, train1_actual_start_date - train1_core_data.saleDate_beg},
+                               train1_seats_data);
+        int train2_actual_start_date = cur_train2_leaving_time_stamp / 1440;
+        seats_data_storage.Get({train2_ID_hash, train2_actual_start_date - train2_core_data.saleDate_beg},
+                               train2_seats_data);
+        res_train1_seat = train1_seats_data.seat[start_station_offset];
+        for (int j = start_station_offset + 1; j < transfer_station_offset; j++) {
+          res_train1_seat = std::min(res_train1_seat, (int)train1_seats_data.seat[j]);
+        }
+        res_train2_seat = train2_seats_data.seat[i];
+        for (int j = i + 1; j < dest_station_offset; j++) {
+          res_train2_seat = std::min(res_train2_seat, (int)train2_seats_data.seat[j]);
+        }
       }
     }
   }
