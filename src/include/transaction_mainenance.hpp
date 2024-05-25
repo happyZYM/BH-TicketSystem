@@ -165,6 +165,10 @@ class TransactionManager : public DataDriverBase {
     b_plus_tree_value_index_t data_id = data_storage->write(tmp);
     hash_t train_ID_hash = SplitMix64Hash(trainID);
     hash_t user_ID_hash = SplitMix64Hash(username);
+    LOG->debug("adding order trainID {} from {} to {} status {} leave {} arrive {} num {} price {} date {} user {}",
+               trainID, from_station_name, to_station_name, status, leave_time_stamp, arrive_time_stamp, num,
+               total_price, running_date_offset, username);
+    LOG->debug("user_ID_hash: {}", user_ID_hash);
     if (status == 0) {
       queue_index_t queue_index_for_query;
       queue_index_for_query.train_ID_hash = train_ID_hash;
@@ -194,6 +198,8 @@ class TransactionManager : public DataDriverBase {
     order_history_index_t order_history_index;
     order_history_index.user_ID_hash = user_ID_hash;
     order_history_index.id = new_id;
+    LOG->debug("new_id: {}", new_id);
+    LOG->debug("data_id: {}", data_id);
     order_history_indexer->Put(order_history_index, data_id);
   }
   inline void FetchQueue(hash_t train_ID_hash, uint8_t running_date_offset,
@@ -208,6 +214,8 @@ class TransactionManager : public DataDriverBase {
     res.resize(total_num);
     for (int i = 0; i < total_num; i++) {
       ++it;
+      if (it == queue_indexer->end_const()) break;
+      if (it.GetKey().train_ID_hash != train_ID_hash || it.GetKey().running_offset != running_date_offset) break;
       res[i].first = it.GetValue();
       res[i].second = it.GetKey().id;
     }

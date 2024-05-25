@@ -163,7 +163,7 @@ std::string TicketSystemEngine::QueryTransfer(const std::string &command) {
   LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
              RetrieveReadableDate(date).second, from, to, order_by);
   // TODO
-  response_stream << "[" << command_id << "] QueryTransfer";
+  response_stream << "[" << command_id << "] 0";
   return response_stream.str();
 }
 
@@ -404,10 +404,10 @@ std::string TicketSystemEngine::RefundTicket(const std::string &command) {
       for (int j = cur_txn_data.from_stop_id; j < cur_txn_data.to_stop_id; j++) {
         seats_data.seat[j] -= cur_txn_data.num;
       }
-      seats_data_storage.Put({train_ID_hash, txn_data.running_date_offset}, seats_data);
       transaction_manager.RemoveOrderFromQueue(train_ID_hash, txn_data.running_date_offset, queue_idxs[i].second);
     }
   }
+  seats_data_storage.Put({train_ID_hash, txn_data.running_date_offset}, seats_data);
   response_stream << "[" << command_id << "] 0";
   return response_stream.str();
 }
