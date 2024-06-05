@@ -50,10 +50,10 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
   LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
              RetrieveReadableDate(date).second, from, to, order_by);
   hash_t from_hash = SplitMix64Hash(from), to_hash = SplitMix64Hash(to);
-  std::vector<StopRegister::DirectTrainInfo> valid_trains;
+  sjtu::vector<StopRegister::DirectTrainInfo> valid_trains;
   stop_register.QueryDirectTrains(date, from_hash, to_hash, valid_trains);
   size_t len = valid_trains.size();
-  std::vector<std::pair<StopRegister::DirectTrainInfo, AdditionalTrainInfo>> valid_trains_full(len);
+  sjtu::vector<std::pair<StopRegister::DirectTrainInfo, AdditionalTrainInfo>> valid_trains_full(len);
   LOG->debug("retrieving full data");
   for (size_t i = 0; i < len; i++) {
     valid_trains_full[i].first = valid_trains[i];
@@ -78,7 +78,7 @@ std::string TicketSystemEngine::QueryTicket(const std::string &command) {
     valid_trains_full[i].second.seats = seats;
   }
   LOG->debug("successfully retrieved full data");
-  std::vector<int> valid_trains_full_index(len);
+  sjtu::vector<int> valid_trains_full_index(len);
   for (size_t i = 0; i < len; i++) {
     valid_trains_full_index[i] = i;
   }
@@ -163,8 +163,8 @@ std::string TicketSystemEngine::QueryTransfer(const std::string &command) {
   LOG->debug("date {}={}-{}, from {}, to {}, order by {}", date, RetrieveReadableDate(date).first,
              RetrieveReadableDate(date).second, from, to, order_by);
   bool has_solution = false;
-  std::vector<hash_t> trains_leaving_from_from;
-  std::vector<hash_t> trains_arriving_at_dest;
+  sjtu::vector<hash_t> trains_leaving_from_from;
+  sjtu::vector<hash_t> trains_arriving_at_dest;
   hash_t from_station_hash = SplitMix64Hash(from), to_station_hash = SplitMix64Hash(to);
   stop_register.FetchTrainLeavingFrom(date, from_station_hash, trains_leaving_from_from);
   stop_register.FetchTrainArriavingAt(date, to_station_hash, trains_arriving_at_dest);
@@ -212,7 +212,7 @@ void TicketSystemEngine::CheckTransfer(hash_t train1_ID_hash, hash_t train2_ID_h
                                        int &res_train2_seat, std::string &res_transfer_station_name,
                                        bool sort_by_time) {
   if (train1_ID_hash == train2_ID_hash) return;
-  std::map<hash_t, int> transfer_mp;
+  sjtu::map<hash_t, int> transfer_mp;
   hash_t from_station_hash = SplitMix64Hash(from_station), to_station_hash = SplitMix64Hash(to_station);
   CoreTrainData train1_core_data, train2_core_data;
   core_train_data_storage.Get(train1_ID_hash, train1_core_data);
@@ -513,7 +513,7 @@ std::string TicketSystemEngine::QueryOrder(const std::string &command) {
     response_stream << "[" << command_id << "] -1";
     return response_stream.str();
   }
-  std::vector<b_plus_tree_value_index_t> his_idxs;
+  sjtu::vector<b_plus_tree_value_index_t> his_idxs;
   transaction_manager.FetchFullUserOrderHistory(user_ID_hash, his_idxs);
   size_t len = his_idxs.size();
   TransactionData txn_data;
@@ -602,7 +602,7 @@ std::string TicketSystemEngine::RefundTicket(const std::string &command) {
     seats_data.seat[i] += txn_data.num;
   }
   seats_data_storage.Put({train_ID_hash, txn_data.running_date_offset}, seats_data);
-  std::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> queue_idxs;
+  sjtu::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> queue_idxs;
   transaction_manager.FetchQueue(train_ID_hash, txn_data.running_date_offset, queue_idxs);
   size_t len = queue_idxs.size();
   for (size_t i = 0; i < len; i++) {

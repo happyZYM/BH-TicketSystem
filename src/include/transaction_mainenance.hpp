@@ -203,7 +203,7 @@ class TransactionManager : public DataDriverBase {
     order_history_indexer->Put(order_history_index, data_id);
   }
   inline void FetchQueue(hash_t train_ID_hash, uint8_t running_date_offset,
-                         std::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> &res) {
+                         sjtu::vector<std::pair<b_plus_tree_value_index_t, uint32_t>> &res) {
     // warning: the validity of train_ID_hash is not checked
     queue_index_t queue_index_for_query;
     queue_index_for_query.train_ID_hash = train_ID_hash;
@@ -228,7 +228,7 @@ class TransactionManager : public DataDriverBase {
     queue_index_for_query.id = id;
     queue_indexer->Remove(queue_index_for_query);
   }
-  inline void FetchFullUserOrderHistory(hash_t user_ID_hash, std::vector<b_plus_tree_value_index_t> &res) {
+  inline void FetchFullUserOrderHistory(hash_t user_ID_hash, sjtu::vector<b_plus_tree_value_index_t> &res) {
     // warning: the validity of user_ID_hash is not checked
     order_history_index_t order_history_index_for_query;
     order_history_index_for_query.user_ID_hash = user_ID_hash;

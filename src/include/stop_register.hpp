@@ -100,7 +100,7 @@ class StopRegister : public DataDriverBase {
                        *reinterpret_cast<default_numeric_index_t *>(&record_leave));
   }
   inline void QueryDirectTrains(uint32_t date, hash_t from_station_ID, hash_t to_station_ID,
-                                std::vector<StopRegister::DirectTrainInfo> &res) {
+                                sjtu::vector<StopRegister::DirectTrainInfo> &res) {
     const static int June_1st_2024 = 152;
     auto it_from = bpt_indexer->lower_bound_const({from_station_ID, 0});
     auto it_to = bpt_indexer->lower_bound_const({to_station_ID, 0});
@@ -202,7 +202,7 @@ class StopRegister : public DataDriverBase {
     entry.to_stop_id = key_to.stop_id;
     success = true;
   }
-  inline void FetchTrainLeavingFrom(uint32_t date, hash_t from_station_ID, std::vector<hash_t> &res) {
+  inline void FetchTrainLeavingFrom(uint32_t date, hash_t from_station_ID, sjtu::vector<hash_t> &res) {
     const static int June_1st_2024 = 152;
     res.clear();
     auto it_from = bpt_indexer->lower_bound_const({from_station_ID, 0});
@@ -232,7 +232,7 @@ class StopRegister : public DataDriverBase {
       ++it_from;
     }
   }
-  inline void FetchTrainArriavingAt(uint32_t date, hash_t to_station_ID, std::vector<hash_t> &res) {
+  inline void FetchTrainArriavingAt(uint32_t date, hash_t to_station_ID, sjtu::vector<hash_t> &res) {
     res.clear();
     auto it_to = bpt_indexer->lower_bound_const({to_station_ID, 0});
     while (it_to != bpt_indexer->end_const()) {

@@ -126,6 +126,7 @@ class vector {
      */
     bool operator!=(const iterator &rhs) const { return raw_pointer != rhs.raw_pointer; }
     bool operator!=(const const_iterator &rhs) const { return raw_pointer != rhs.raw_pointer; }
+    bool operator<(const iterator &rhs) const { return raw_pointer < rhs.raw_pointer; }
   };
   /**
    * TODO
@@ -230,6 +231,15 @@ class vector {
     raw_end = raw_beg;
     allocated_length = 1;
     current_length = 0;
+  }
+  vector(size_t len) {
+    raw_beg = alloc.allocate(len * 2);
+    raw_end = raw_beg + len;
+    allocated_length = len * 2;
+    current_length = len;
+    for (size_t i = 0; i < len; ++i) {
+      std::allocator_traits<decltype(alloc)>::construct(alloc, raw_beg + i);
+    }
   }
   vector(const vector &other) {
     raw_beg = alloc.allocate(other.allocated_length);
@@ -536,6 +546,34 @@ class vector {
   }
 
   T *data() { return raw_beg; }
+
+  void resize(size_t len) {
+    if (len < current_length) {
+      for (size_t i = len; i < current_length; ++i) {
+        std::allocator_traits<decltype(alloc)>::destroy(alloc, raw_beg + i);
+      }
+      raw_end = raw_beg + len;
+      current_length = len;
+    } else if (len > current_length) {
+      if (len > allocated_length) {
+        size_t new_allocated_length = len * 2;
+        T *new_raw_beg = alloc.allocate(new_allocated_length);
+        for (size_t i = 0; i < current_length; ++i) {
+          std::allocator_traits<decltype(alloc)>::construct(alloc, new_raw_beg + i, std::move(raw_beg[i]));
+          std::allocator_traits<decltype(alloc)>::destroy(alloc, raw_beg + i);
+        }
+        alloc.deallocate(raw_beg, allocated_length);
+        raw_beg = new_raw_beg;
+        raw_end = raw_beg + current_length;
+        allocated_length = new_allocated_length;
+      }
+      for (size_t i = current_length; i < len; ++i) {
+        std::allocator_traits<decltype(alloc)>::construct(alloc, raw_beg + i);
+      }
+      raw_end = raw_beg + len;
+      current_length = len;
+    }
+  }
 };
 template <typename T>
 std::allocator<T> vector<T>::alloc;

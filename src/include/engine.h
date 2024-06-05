@@ -18,7 +18,7 @@ class TicketSystemEngine {
 #endif
   bool its_time_to_exit = false;
   std::string data_directory;
-  std::map<hash_t, uint8_t> online_users;
+  sjtu::map<hash_t, uint8_t> online_users;
 
   /**
    * @brief user data system
