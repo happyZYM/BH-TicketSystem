@@ -54,6 +54,7 @@ void handle_client(sockpp::tcp_socket client, TicketSystemEngine &engine) {
 
         // 检查是否需要退出
         if (*engine.its_time_to_exit_ptr) {
+          (&engine)->~TicketSystemEngine();
           exit(0);
           return;
         }

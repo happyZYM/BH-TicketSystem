@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="text-center">User Profile</h2>
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+        {% else %}
+            <div class="card mt-4 border-custom">
+                <div class="card-body">
+                    <h4 class="card-title">{{ user_info.name }}</h4>
+                    <p class="card-text"><strong>Username:</strong> {{ user_info.username }}</p>
+                    <p class="card-text"><strong>Email:</strong> {{ user_info.email }}</p>
+                    <p class="card-text"><strong>Privilege:</strong> {{ user_info.privilege }}</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加自定义样式 -->
+<style>
+    .border-custom {
+        border: 2px solid #007bff; /* 蓝色边框 */
+        border-radius: 15px; /* 圆角边框 */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+    }
+    .card-body {
+        padding: 20px;
+    }
+</style>
+{% endblock %}
