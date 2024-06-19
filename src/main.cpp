@@ -3,6 +3,7 @@
 #include "basic_defs.h"
 #ifdef ENABLE_ADVANCED_FEATURE
 #include <sockpp/tcp_acceptor.h>
+#include <thread>
 #include "dataguard/dataguard.h"
 #endif
 #include "engine.h"
@@ -20,6 +21,51 @@ const bool optimize_enabled = false;
 // #else
 // const bool global_log_enabled = true;
 // #endif
+
+#ifdef ENABLE_ADVANCED_FEATURE
+
+// 处理每个连接的函数
+void handle_client(sockpp::tcp_socket client, TicketSystemEngine &engine) {
+  try {
+    std::string line;
+    std::string buffer;
+
+    // 读取客户端发送的数据
+    while (true) {
+      char data[1024];
+      ssize_t n = client.read(data, sizeof(data));
+      if (n <= 0) {
+        break;  // 连接关闭或出现错误
+      }
+      buffer.append(data, n);
+
+      // 检查是否收到完整的一行
+      size_t pos;
+      while ((pos = buffer.find('\n')) != std::string::npos) {
+        line = buffer.substr(0, pos);
+        buffer.erase(0, pos + 1);
+        line = "[0] " + line;
+
+        // 调用 TicketSystemEngine 的 Execute 方法处理命令
+        std::string response = engine.Execute(line);
+
+        // 发送响应给客户端
+        client.write(response);
+
+        // 检查是否需要退出
+        if (*engine.its_time_to_exit_ptr) {
+          exit(0);
+          return;
+        }
+      }
+    }
+  } catch (const std::exception &e) {
+    LOG->error("Exception handling client: {}", e.what());
+  }
+}
+
+#endif  // ENABLE_ADVANCED_FEATURE
+
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser program("zts-core", main_version + "-" + build_version);
   argparse::ArgumentParser fsck_command("fsck");
@@ -102,7 +148,20 @@ int main(int argc, char *argv[]) {
         return 1;
       } else
         LOG->info("successfully bind to address {} port {}", address, port);
-      throw std::runtime_error("Server mode not implemented");
+      // throw std::runtime_error("Server mode not implemented");
+      TicketSystemEngine engine(data_directory);
+      while (true) {
+        // 接受新的客户端连接
+        sockpp::tcp_socket client = acceptor.accept();
+        if (!client) {
+          LOG->error("Error accepting incoming connection: {}", acceptor.last_error_str());
+        } else {
+          LOG->info("New client connected from {}", client.peer_address().to_string());
+
+          // 创建一个线程来处理客户端连接
+          std::thread(handle_client, std::move(client), std::ref(engine)).detach();
+        }
+      }
     } else {
 #endif
       std::ios::sync_with_stdio(false);

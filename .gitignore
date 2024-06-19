@@ -6,3 +6,10 @@
 /mbuild
 /.clang-format
 /test/data
+
+# Ignore all .env files
+**/.env
+**/.env.*
+
+# Ignore all __pycache__ directories
+**/__pycache__/
